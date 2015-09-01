@@ -56,11 +56,6 @@ body {
     outline: none;
 }
 
-canvas {
-    display: block;
-    background-color: deepskyblue;
-}
-
 /* Media queries -------------------------------------------------------------------------------------------------------------------- */
 @media (min-width: 1200px) {
     .menu-container {
