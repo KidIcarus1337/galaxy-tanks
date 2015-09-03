@@ -43,17 +43,82 @@ body {
     border-bottom: 1px solid #5f5f5f;
 }
 
-.menu-button {
+.menu-button, .fire-button {
     width: 200px;
     height: 40px;
-    margin-top: 30px;
     background-color: black;
     border: 1px solid #fff;
     border-radius: 2px;
 }
 
-.menu-button:focus {
+.menu-button {
+    margin-top: 30px;
+}
+
+.fire-button {
+    width: 100%;
+    color: #fff;
+}
+
+.menu-button:focus, .fire-button:focus {
     outline: none;
+}
+
+.game-ui {
+    position: absolute;
+    width: 30%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20px 70px 0;
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #fff;
+    border-radius: 2px;
+    background-color: #1f1f1f;
+}
+
+.fire-param-cont {
+    width: 100px;
+    border-top: 2px solid;
+    border-bottom: 2px solid;
+    color: #aaaaaa;
+}
+
+.aim-container {
+    float: left;
+}
+
+.power-container {
+    float: right;
+}
+
+.fire-param-cont h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.fire-param-cont p {
+    margin: 0;
+}
+
+.param-button {
+    width: 35px;
+    height: 35px;
+    margin: 0 auto;
+    border: 1px hidden;
+    border-radius: 2px;
+    line-height: 35px;
+}
+
+.fire-param-cont p {
+    text-align: center;
+    cursor: pointer;
+}
+
+.btn-container {
+    width: 30%;
+    margin: 20px auto 20px;
 }
 
 /* Media queries -------------------------------------------------------------------------------------------------------------------- */

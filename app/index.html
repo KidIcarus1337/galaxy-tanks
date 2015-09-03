@@ -29,9 +29,24 @@
     </div>
 </div>
 <div class="game-screen">
-    <canvas id="canvas">
-
-    </canvas>
+    <canvas id="canvas"></canvas>
+    <div class="game-ui container">
+        <div class="fire-param-cont aim-container">
+            <h3 class="unselectable">AIM</h3>
+            <div class="param-button aim-button">
+                <p class="unselectable fire-param aim">0˚</p>
+            </div>
+        </div>
+        <div class="fire-param-cont power-container">
+            <h3 class="unselectable">POWER</h3>
+            <div class="param-button power-button">
+                <p class="unselectable fire-param power">50</p>
+            </div>
+        </div>
+        <div class="btn-container">
+            <button type="button" class="fire-button">FIRE</button>
+        </div>
+    </div>
 </div>
 
 <!-- jQuery -->
@@ -39,6 +54,9 @@
 
 <!-- Bootstrap JavaScript -->
 <script type="text/javascript" src="scripts/bootstrap.js"></script>
+
+<!-- jQuery Color -->
+<script type="text/javascript" src="http://code.jquery.com/color/jquery.color-2.1.2.min.js"></script>
 
 <!-- Fabric -->
 <script type="text/javascript" src="scripts/fabric.min.js"></script>
