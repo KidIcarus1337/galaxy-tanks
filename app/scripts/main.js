@@ -85,7 +85,10 @@ $(function() {
     }
     resizeCanvas();
 
-    var ball = new fabric.Circle({radius: 20, fill: '#FF5354', left: 50, top: 50, selectable: false, dx: 4, dy: 3});
+    var ball = new fabric.Circle({radius: 20, fill: '#FF5354', left: 50, top: 50, selectable: false});
+    var angle;
+    var degreeInRadians = 2*Math.PI/360;
+    var realX = 0, realY = 0;
 
     function moveTo(x, y) {
         ball.set({left: x, top: y});
@@ -98,21 +101,54 @@ $(function() {
             ball.dy = -ball.dy;
         }
     }
-    function draw(x, y) {
-        moveTo(x, y);
-        canvas.renderAll();
-        setTimeout(function () {
-            changeDirectionIfNecessary(x, y);
-            draw(x + ball.dx * (60/frame_rate), y + ball.dy * (60/frame_rate));
-        }, 1000 / frame_rate);
+
+//    var ball_x = realX, ball_y = realY;
+
+    function draw(power, x, y) {
+        if (stopBallBool != true) {
+            power = Number($(".power").text());
+            moveTo(x, y);
+            canvas.renderAll();
+            setTimeout(function () {
+                changeDirectionIfNecessary(x, y);
+                draw(power, x + ball.dx * ((power * 7)/frame_rate), y + ball.dy * ((power * 7)/frame_rate));
+            }, 1000 / frame_rate);
+        } else {
+            $(".fire-button").on('click', fire).off("click", stopBall);
+
+        }
     }
 
     canvas.add(ball);
 
-    $(".fire-button").on('click', function() {
-        draw(0, 0);
+    var stopBall;
+    var stopBallBool;
+
+    function fire() {
+        angle = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
+
+        realX = realX + Math.cos(degreeInRadians * angle);
+        realY = realY + Math.sin(degreeInRadians * angle);
+        console.log(ball.dx, realX);
+        if (ball.dx == undefined || ball.dy == undefined) {
+            ball.set({dx: realX, dy: realY});
+            console.log("blah");
+        }
+
+
+        stopBallBool = false;
+        var power = Number($(".power").text());
+        draw(power, realX, realY);
         $(".fire-button").off();
-    });
+        stopBall = function() {
+            stopBallBool = true;
+        };
+        setTimeout(function() {
+            $(".fire-button").on("click", stopBall);
+        }, 50);
+    }
+
+    $(".fire-button").on('click', fire);
 
     // Game UI ----------------------------------------------------------------------------------------------------------
     function paramHover() {
@@ -166,7 +202,7 @@ $(function() {
         };
         $(window)
             .on('mousewheel DOMMouseScroll', aimWheel)
-            .on("keydown", aimKeyPress)
+            .on("keydown", aimKeyPress);
     }
 
     function confirmAim() {
@@ -230,5 +266,9 @@ $(function() {
     $(".aim-button").on("click", setAim);
     $(".power-button").on("click", setPower);
     paramHover();
+
+
+
+
     modeChange(tearTitle, buildGame);
 });

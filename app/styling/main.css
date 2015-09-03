@@ -70,7 +70,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 20px 70px 0;
+    padding: 20px 70px 10px;
     border-top: 1px solid #fff;
     border-left: 1px solid #fff;
     border-right: 1px solid #fff;
