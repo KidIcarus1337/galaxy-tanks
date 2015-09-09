@@ -85,7 +85,6 @@ $(function() {
     // Resize the canvas to fill browser window dynamically
     window.addEventListener('resize', resizeCanvas, false);
 
-    var frame_rate = 60;
     function resizeCanvas() {
         canvas.setHeight(window.innerHeight);
         canvas.setWidth(window.innerWidth);
@@ -95,9 +94,20 @@ $(function() {
 
     // Physics
     // ----------------------------------------------------------------------------------------------------------
+    var frame_rate = 120;
+    var game_speed = 1;
+    var game_time_unit = (60 / frame_rate) * game_speed;
+
     var angle;
     var degreeInRadians = 2*Math.PI/360;
-    var gravitational_constant = 0.20;
+
+    var gravitational_constant = 0.2;
+    fabric.Object.prototype.realX = function() {
+        return this.left + this.radius;
+    };
+    fabric.Object.prototype.realY = function() {
+        return this.top + this.radius;
+    };
 
     // Shots
     var default_shot = new fabric.Circle({radius: 10, fill: 'yellow', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1});
@@ -124,6 +134,11 @@ $(function() {
     canvas.add(selected_shot, test_planet);
     var objects_in_universe = [test_planet];
 
+    function distanceBetween(object1, object2) {
+        var dx = (object1.realX()) - (object2.realX()), dy = (object1.realY()) - (object2.realY());
+        return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+    }
+
     function calculateGForce(object) {
         var other_objects = $.grep(objects_in_universe, function(o, i) {
             return o != object;
@@ -131,10 +146,10 @@ $(function() {
         var total_x_force = 0, total_y_force = 0;
         for (var index in other_objects) {
             var g_source = other_objects[index];
-            var dx = (g_source.left + g_source.radius) - (object.left + object.radius), dy = (g_source.top + g_source.radius) - (object.top + object.radius);
-            var hypotenuse = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-            var g_force = (gravitational_constant * g_source.mass) / Math.pow(hypotenuse, 2);
-            var x_force = g_force * (dx / hypotenuse), y_force = g_force * (dy / hypotenuse);
+            var distance = distanceBetween(g_source, object);
+            var dx = (g_source.realX()) - (object.realX()), dy = (g_source.realY()) - (object.realY());
+            var g_force = (gravitational_constant * g_source.mass) / Math.pow(distance, 2);
+            var x_force = g_force * (dx / distance), y_force = g_force * (dy / distance);
             total_x_force += x_force;
             total_y_force += y_force;
         }
@@ -143,8 +158,8 @@ $(function() {
 
     function updateVelocity(object) {
         var g_forces = calculateGForce(object);
-        object.velocityX += g_forces[0];
-        object.velocityY += g_forces[1];
+        object.velocityX = object.velocityX + (g_forces[0] * game_time_unit);
+        object.velocityY = object.velocityY + (g_forces[1] * game_time_unit);
         if (object.left + object.velocityX < 0 || object.left + object.velocityX > canvas.width - object.width) {
             object.velocityX = -object.velocityX;
         }
@@ -154,25 +169,41 @@ $(function() {
     }
 
     function updatePosition(object) {
-        object.set({left: object.left + object.velocityX, top: object.top + object.velocityY});
+        object.set({left: object.left + object.velocityX * game_time_unit, top: object.top + object.velocityY * game_time_unit});
     }
 
-    function animate_loop() {
+    function checkCollision(object) {
+        var other_objects = $.grep(objects_in_universe, function(o, i) {
+            return o != object;
+        });
+        for (var index in other_objects) {
+            var opposing_obj = other_objects[index];
+            var distance = distanceBetween(opposing_obj, object);
+            if ((opposing_obj.radius + object.radius) > distance && object == selected_shot) {
+                    objects_in_universe = $.grep(objects_in_universe, function(o, i) {
+                        return o != object;
+                    });
+                    canvas.remove(object);
+            }
+        }
+    }
+
+    function animateLoop() {
         for (var index in objects_in_universe) {
             var object = objects_in_universe[index];
+            checkCollision(object);
             updateVelocity(object);
             updatePosition(object);
         }
-        setTimeout(animate_loop, 1000 / frame_rate);
         canvas.renderAll();
+        setTimeout(animateLoop, 1000 / frame_rate);
     }
 
     function fire(object) {
         var power = Number($(".power").text());
         angle = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
-        object.velocityX = Math.cos(degreeInRadians * angle) * ((power * 5)/frame_rate);
-        object.velocityY = Math.sin(degreeInRadians * angle) * ((power * 5)/frame_rate);
-
+        object.velocityX = Math.cos(degreeInRadians * angle) * ((power / 10));
+        object.velocityY = Math.sin(degreeInRadians * angle) * ((power / 10));
         objects_in_universe.push(object);
     }
 
@@ -311,5 +342,5 @@ $(function() {
 
 
     modeChange(tearTitle, buildGame);
-    animate_loop();
+    animateLoop();
 });
