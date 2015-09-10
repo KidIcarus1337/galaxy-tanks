@@ -99,6 +99,7 @@ $(function() {
     var game_time_unit = (60 / frame_rate) * game_speed;
 
     var angle;
+    var power;
     var degreeInRadians = 2*Math.PI/360;
 
     var gravitational_constant = 0.2;
@@ -110,11 +111,22 @@ $(function() {
     };
 
     // Shots
-    var default_shot = new fabric.Circle({radius: 10, fill: 'yellow', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1});
-    var selected_shot = default_shot;
+    var shotMap = {
+        "NORMAL SHOT": function() {
+            return new fabric.Circle({radius: 2, fill: 'yellow', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1, type: "shot"})
+        },
+        "NO-GRAVITY SHOT": function() {
+            return new fabric.Circle({radius: 2, fill: 'red', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1, type: "shot"})
+        }
+    };
+    var shot;
+    function addShot(selected_shot) {
+        shot = shotMap[selected_shot]();
+    }
+    var selected_shot = $(".shot-button").text();
 
     // Planets
-    var test_planet = new fabric.Circle({radius: 100, left: 900, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
+    var test_planet = new fabric.Circle({radius: 100, left: 900, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000, type: "planet"});
 
     // Stars
 
@@ -131,7 +143,7 @@ $(function() {
         }
     });
 
-    canvas.add(selected_shot, test_planet);
+    canvas.add(test_planet);
     var objects_in_universe = [test_planet];
 
     function distanceBetween(object1, object2) {
@@ -172,6 +184,7 @@ $(function() {
         object.set({left: object.left + object.velocityX * game_time_unit, top: object.top + object.velocityY * game_time_unit});
     }
 
+    var objects_to_remove = [];
     function checkCollision(object) {
         var other_objects = $.grep(objects_in_universe, function(o, i) {
             return o != object;
@@ -179,11 +192,8 @@ $(function() {
         for (var index in other_objects) {
             var opposing_obj = other_objects[index];
             var distance = distanceBetween(opposing_obj, object);
-            if ((opposing_obj.radius + object.radius) > distance && object == selected_shot) {
-                    objects_in_universe = $.grep(objects_in_universe, function(o, i) {
-                        return o != object;
-                    });
-                    canvas.remove(object);
+            if ((opposing_obj.radius + object.radius) > distance && object.type == "shot") {
+                objects_to_remove.push(object);
             }
         }
     }
@@ -195,25 +205,31 @@ $(function() {
             updateVelocity(object);
             updatePosition(object);
         }
+        if (objects_to_remove != []) {
+            for (var i in objects_to_remove) {
+                var object_to_remove = objects_to_remove[i];
+                objects_in_universe.splice($.inArray(object_to_remove, objects_in_universe), 1);
+                canvas.remove(object_to_remove);
+            }
+            objects_to_remove = [];
+        }
         canvas.renderAll();
         setTimeout(animateLoop, 1000 / frame_rate);
     }
 
-    function fire(object) {
-        var power = Number($(".power").text());
+    function fire(selected_shot) {
+        addShot(selected_shot);
+        canvas.add(shot);
+        power = Number($(".power").text());
         angle = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
-        object.velocityX = Math.cos(degreeInRadians * angle) * ((power / 10));
-        object.velocityY = Math.sin(degreeInRadians * angle) * ((power / 10));
-        objects_in_universe.push(object);
+        shot.velocityX = Math.cos(degreeInRadians * angle) * ((power / 10));
+        shot.velocityY = Math.sin(degreeInRadians * angle) * ((power / 10));
+        objects_in_universe.push(shot);
     }
 
     // GAME UI
     // ----------------------------------------------------------------------------------------------------------
     // ----------------------------------------------------------------------------------------------------------
-    $(".fire-button").on('click', function() {
-        fire(selected_shot);
-    });
-
     function paramHover() {
         $(".param-button").hover(function() {
             $(this).stop().animate({backgroundColor: "#414141"}, 150)
@@ -229,7 +245,12 @@ $(function() {
         $(".aim").stop().animate({"font-size": 30}, 200);
         $(".aim-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
         setTimeout(function() {
-            $(window).on("click", confirmAim);
+            $(window).on("click", confirmAim).on("keydown", function(e) {
+                key = e.keyCode || e.charCode;
+                if (key == 13) {
+                    confirmAim();
+                }
+            });
         }, 50);
         var keyPressed = false;
         aimKeyPress = function(e) {
@@ -274,6 +295,7 @@ $(function() {
         $(window).off("click", confirmAim).off("mousewheel DOMMouseScroll", aimWheel).off("keydown", aimKeyPress);
         $(".aim-button").on("click", setAim).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
         $(".fire-button").on('click', function() {
+            selected_shot = $(".shot-button").text();
             fire(selected_shot);
         });
     }
@@ -285,7 +307,12 @@ $(function() {
         $(".power").stop().animate({"font-size": 30}, 200);
         $(".power-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
         setTimeout(function() {
-            $(window).on("click", confirmPower);
+            $(window).on("click", confirmPower).on("keydown", function(e) {
+                key = e.keyCode || e.charCode;
+                if (key == 13) {
+                    confirmPower();
+                }
+            });
         }, 50);
         var keyPressed = false;
         powerKeyPress = function(e) {
@@ -330,16 +357,35 @@ $(function() {
         $(window).off("click", confirmPower).off("mousewheel DOMMouseScroll", powerWheel).off("keydown", powerKeyPress);
         $(".power-button").on("click", setPower).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
         $(".fire-button").on('click', function() {
+            selected_shot = $(".shot-button").text();
             fire(selected_shot);
         });
     }
 
+    function selectShot() {
+        $(".shot-button").css({display: "none"});
+        $(".shot-selection").css({display: "block"});
+        $(".fire-btn-container").css({margin: "30px auto 0"});
+        $(".fire-button").css({marginTop: "20px"});
+        $(".shot-option").on("click", function() {
+            $(".shot-button").text($(this).text());
+            $(".shot-button").css({display: "block"});
+            $(".shot-selection").css({display: "none"});
+            $(".fire-btn-container").css({margin: "20px auto 0"});
+            $(".fire-button").css({marginTop: "0"});
+            $(".shot-option").off();
+        })
+    }
+
+    $(".fire-button").on('click', function() {
+        selected_shot = $(".shot-button").text();
+        fire(selected_shot);
+    });
     $(".aim-button").on("click", setAim);
     $(".power-button").on("click", setPower);
+    $(".shot-button").on("click", selectShot);
+
     paramHover();
-
-
-
 
     modeChange(tearTitle, buildGame);
     animateLoop();
