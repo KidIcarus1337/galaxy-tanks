@@ -109,25 +109,53 @@ $(function() {
     fabric.Object.prototype.realY = function() {
         return this.top + this.radius;
     };
+    fabric.Object.prototype.calculateGForce = function(objects_in_universe) {
+        var self = this;
+        var other_objects = $.grep(objects_in_universe, function(o, i) {
+            return o != self;
+        });
+        var total_x_force = 0, total_y_force = 0;
+        for (var index in other_objects) {
+            var g_source = other_objects[index];
+            var distance = distanceBetween(g_source, this);
+            var dx = (g_source.realX()) - (this.realX()), dy = (g_source.realY()) - (this.realY());
+            var g_force = (gravitational_constant * g_source.mass) / Math.pow(distance, 2);
+            var x_force = g_force * (dx / distance), y_force = g_force * (dy / distance);
+            total_x_force += x_force;
+            total_y_force += y_force;
+        }
+        return [total_x_force, total_y_force];
+    };
 
     // Shots
+    var Shot = fabric.util.createClass(fabric.Circle, {
+        type: "Shot",
+
+        initialize: function(options) {
+            options || (options = { });
+            this.callSuper('initialize', options);
+        },
+
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
+        }
+    });
     var shotMap = {
         "NORMAL SHOT": function() {
-            return new fabric.Circle({radius: 2, fill: 'yellow', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1, type: "shot"})
+            return new Shot({radius: 2, fill: 'yellow', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1})
         },
         "NO-GRAVITY SHOT": function() {
-            return new fabric.Circle({radius: 2, fill: 'red', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1, type: "shot"})
+            return new Shot({radius: 2, fill: 'red', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1})
         }
     };
     var shot;
+    var selected_shot;
     function addShot(selected_shot) {
         shot = shotMap[selected_shot]();
     }
-    var selected_shot = $(".shot-button").text();
 
     // Planets
     var test_planet = new fabric.Circle({radius: 100, left: 900, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000, type: "planet"});
-
     // Stars
 
 
@@ -145,31 +173,13 @@ $(function() {
 
     canvas.add(test_planet);
     var objects_in_universe = [test_planet];
-
     function distanceBetween(object1, object2) {
         var dx = (object1.realX()) - (object2.realX()), dy = (object1.realY()) - (object2.realY());
         return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
     }
 
-    function calculateGForce(object) {
-        var other_objects = $.grep(objects_in_universe, function(o, i) {
-            return o != object;
-        });
-        var total_x_force = 0, total_y_force = 0;
-        for (var index in other_objects) {
-            var g_source = other_objects[index];
-            var distance = distanceBetween(g_source, object);
-            var dx = (g_source.realX()) - (object.realX()), dy = (g_source.realY()) - (object.realY());
-            var g_force = (gravitational_constant * g_source.mass) / Math.pow(distance, 2);
-            var x_force = g_force * (dx / distance), y_force = g_force * (dy / distance);
-            total_x_force += x_force;
-            total_y_force += y_force;
-        }
-        return [total_x_force, total_y_force];
-    }
-
     function updateVelocity(object) {
-        var g_forces = calculateGForce(object);
+        var g_forces = object.calculateGForce(objects_in_universe);
         object.velocityX = object.velocityX + (g_forces[0] * game_time_unit);
         object.velocityY = object.velocityY + (g_forces[1] * game_time_unit);
         if (object.left + object.velocityX < 0 || object.left + object.velocityX > canvas.width - object.width) {
@@ -192,7 +202,7 @@ $(function() {
         for (var index in other_objects) {
             var opposing_obj = other_objects[index];
             var distance = distanceBetween(opposing_obj, object);
-            if ((opposing_obj.radius + object.radius) > distance && object.type == "shot") {
+            if ((opposing_obj.radius + object.radius) > distance && object.type == "Shot") {
                 objects_to_remove.push(object);
             }
         }
