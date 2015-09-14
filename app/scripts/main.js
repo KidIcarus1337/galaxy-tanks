@@ -118,6 +118,10 @@ $(function() {
         for (var index in other_objects) {
             var g_source = other_objects[index];
             var distance = distanceBetween(g_source, this);
+            // Check if any two objects ever occupy the same position at any given time so as to avoid crashing the program via dividing by zero
+            if (distance == 0) {
+                return [0, 0];
+            }
             var dx = (g_source.realX()) - (this.realX()), dy = (g_source.realY()) - (this.realY());
             var g_force = (gravitational_constant * g_source.mass) / Math.pow(distance, 2);
             var x_force = g_force * (dx / distance), y_force = g_force * (dy / distance);
@@ -126,6 +130,38 @@ $(function() {
         }
         return [total_x_force, total_y_force];
     };
+
+    // Players
+    var Player = fabric.util.createClass(fabric.Image, {
+        type: "Player",
+
+        initialize: function(element, options) {
+            options || (options = { });
+            this.callSuper('initialize', element, options);
+            options && this.set('imageID', options.imageID);
+        },
+
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
+        },
+
+        realX: function() {
+            return this.left + (this.width / 2);
+        },
+
+        realY: function() {
+            return this.top + (this.height / 2);
+        },
+
+        calculateGForce: function() {
+            return [0, 0];
+        }
+    });
+
+    var dean = document.getElementById('player-dean');
+    var kent = document.getElementById('player-kent');
+    var player_1 = new Player(dean, {playerId: "dean", radius: 30, height: 60, width: 60, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+    var player_2 = new Player(kent, {playerId: "kent", radius: 30, height: 60, width: 60, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
 
     // Shots
     var Shot = fabric.util.createClass(fabric.Circle, {
@@ -140,25 +176,59 @@ $(function() {
             this.callSuper('_render', ctx);
         }
     });
-    var shotMap = {
-        "NORMAL SHOT": function() {
-            return new Shot({radius: 2, fill: 'yellow', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+    var noGravityShot = fabric.util.createClass(Shot, {
+        type: "Shot",
+
+        initialize: function(options) {
+            options || (options = { });
+            this.callSuper('initialize', options);
         },
-        "NO-GRAVITY SHOT": function() {
-            return new Shot({radius: 2, fill: 'red', left: 1100, top: 150, selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
+        },
+
+        calculateGForce: function() {
+            return [0, 0];
+        }
+    });
+    var antiGravityShot = fabric.util.createClass(Shot, {
+        type: "Shot",
+
+        initialize: function(options) {
+            options || (options = { });
+            this.callSuper('initialize', options);
+        },
+
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
+        },
+
+        calculateGForce: function() {
+            var total_force  = Shot.prototype.calculateGForce.call(this, objects_in_universe);
+            return [-total_force[0], -total_force[1]];
+        }
+    });
+    var shotMap = {
+        "NORMAL SHOT": function(player_coord) {
+            return new Shot({radius: 2, fill: 'yellow', left: player_coord[0], top: player_coord[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+        },
+        "NO-GRAVITY SHOT": function(player_coord) {
+            return new noGravityShot({radius: 2, fill: 'red', left: player_coord[0], top: player_coord[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+        },
+        "ANTI-GRAVITY SHOT": function(player_coord) {
+            return new antiGravityShot({radius: 2, fill: 'green', left: player_coord[0], top: player_coord[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
         }
     };
     var shot;
     var selected_shot;
     function addShot(selected_shot) {
-        shot = shotMap[selected_shot]();
+        var player_coord = [player_1.realX(), player_1.realY()];
+        shot = shotMap[selected_shot](player_coord);
     }
 
     // Planets
     var test_planet = new fabric.Circle({radius: 100, left: 900, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000, type: "planet"});
-    // Stars
-
-
     test_planet.setGradient('fill', {
         x1: 0,
         y1: -test_planet.width / 2,
@@ -171,8 +241,13 @@ $(function() {
         }
     });
 
-    canvas.add(test_planet);
-    var objects_in_universe = [test_planet];
+    // Stars
+
+
+    // Object interactions and relations
+    canvas.add(test_planet, player_1, player_2);
+    var objects_in_universe = [test_planet, player_1, player_2];
+
     function distanceBetween(object1, object2) {
         var dx = (object1.realX()) - (object2.realX()), dy = (object1.realY()) - (object2.realY());
         return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
@@ -195,6 +270,8 @@ $(function() {
     }
 
     var objects_to_remove = [];
+
+    var damage = 0;
     function checkCollision(object) {
         var other_objects = $.grep(objects_in_universe, function(o, i) {
             return o != object;
@@ -202,8 +279,14 @@ $(function() {
         for (var index in other_objects) {
             var opposing_obj = other_objects[index];
             var distance = distanceBetween(opposing_obj, object);
-            if ((opposing_obj.radius + object.radius) > distance && object.type == "Shot") {
+            if ((opposing_obj.radius + object.radius) > distance && object.type == "Shot" && opposing_obj.playerId !== "dean" && object.playerId !== "dean") {
                 objects_to_remove.push(object);
+                if (opposing_obj.playerId == "kent") {
+                    damage += 1;
+                    if (damage == 3) {
+                        alert("GG It's like coffeezilla!")
+                    }
+                }
             }
         }
     }
@@ -378,11 +461,11 @@ $(function() {
         $(".fire-btn-container").css({margin: "30px auto 0"});
         $(".fire-button").css({marginTop: "20px"});
         $(".shot-option").on("click", function() {
-            $(".shot-button").text($(this).text());
-            $(".shot-button").css({display: "block"});
+            $(".shot-button").text($(this).text()).css({display: "block"});
             $(".shot-selection").css({display: "none"});
             $(".fire-btn-container").css({margin: "20px auto 0"});
             $(".fire-button").css({marginTop: "0"});
+            $(this).appendTo(".shot-selection");
             $(".shot-option").off();
         })
     }
