@@ -94,15 +94,18 @@ $(function() {
 
     // Physics
     // ----------------------------------------------------------------------------------------------------------
-    var frame_rate = 120;
-    var game_speed = 1;
-    var game_time_unit = (60 / frame_rate) * game_speed;
+    var FRAME_RATE = 120;
+    var GAME_SPEED = 1;
+    var GAME_TIME_UNIT = (60 / FRAME_RATE) * GAME_SPEED;
 
-    var angle;
+    var current_angle = function() {
+        return Number($(".aim").text().substring(0, $(".aim").text().length - 1))
+    };
+    var angle = current_angle();
     var power;
-    var degreeInRadians = 2*Math.PI/360;
+    var DEGREE_IN_RADIANS = 2*Math.PI/360;
 
-    var gravitational_constant = 0.2;
+    var GRAVITATIONAL_CONSTANT = 0.2;
     fabric.Object.prototype.realX = function() {
         return this.left + this.radius;
     };
@@ -123,7 +126,7 @@ $(function() {
                 return [0, 0];
             }
             var dx = (g_source.realX()) - (this.realX()), dy = (g_source.realY()) - (this.realY());
-            var g_force = (gravitational_constant * g_source.mass) / Math.pow(distance, 2);
+            var g_force = (GRAVITATIONAL_CONSTANT * g_source.mass) / Math.pow(distance, 2);
             var x_force = g_force * (dx / distance), y_force = g_force * (dy / distance);
             total_x_force += x_force;
             total_y_force += y_force;
@@ -132,25 +135,52 @@ $(function() {
     };
 
     // Players
-    var Player = fabric.util.createClass(fabric.Image, {
-        type: "Player",
+    var playerPerimeter = fabric.util.createClass(fabric.Circle, {
+        type: "playerPerimeter",
 
-        initialize: function(element, options) {
+        initialize: function(options) {
             options || (options = { });
-            this.callSuper('initialize', element, options);
-            options && this.set('imageID', options.imageID);
+            this.callSuper('initialize', options);
         },
 
         _render: function(ctx) {
             this.callSuper('_render', ctx);
+        }
+    });
+    var playerBody = fabric.util.createClass(fabric.Circle, {
+        type: "playerBody",
+
+        initialize: function(options) {
+            options || (options = { });
+            this.callSuper('initialize', options);
         },
 
-        realX: function() {
-            return this.left + (this.width / 2);
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
+        }
+    });
+    var playerTurret = fabric.util.createClass(fabric.Line, {
+        type: "playerTurret",
+
+        initialize: function(points, options) {
+            options || (options = { });
+            this.callSuper('initialize', points, options);
         },
 
-        realY: function() {
-            return this.top + (this.height / 2);
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
+        }
+    });
+    var Player = fabric.util.createClass(fabric.Group, {
+        type: "Player",
+
+        initialize: function(objects, options) {
+            options || (options = { });
+            this.callSuper('initialize', objects, options);
+        },
+
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
         },
 
         calculateGForce: function() {
@@ -158,10 +188,22 @@ $(function() {
         }
     });
 
-    var dean = document.getElementById('player-dean');
-    var kent = document.getElementById('player-kent');
-    var player_1 = new Player(dean, {playerId: "dean", radius: 30, height: 60, width: 60, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
-    var player_2 = new Player(kent, {playerId: "kent", radius: 30, height: 60, width: 60, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+    var TURRET_LENGTH = 30,
+        turret_cos = function(angle) {
+            return TURRET_LENGTH * (Math.cos(DEGREE_IN_RADIANS * angle));
+        },
+        turret_sin = function(angle) {
+            return TURRET_LENGTH * (Math.sin(DEGREE_IN_RADIANS * angle));
+        };
+    var p1_group_perimeter = new fabric.Circle({radius: TURRET_LENGTH, fill: "white", selectable: false, originX: "center", originY: "center"});
+    var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
+    var p1_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())], {fill: "grey", stroke: "grey", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
+    var player_1 = new Player([p1_group_perimeter, p1_body, p1_turret], {radius: 30, colRadius: 20, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+
+    var p2_group_perimeter = new fabric.Circle({radius: TURRET_LENGTH, selectable: false, originX: "center", originY: "center"});
+    var p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
+    var p2_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())], {fill: "grey", stroke: "grey", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
+    var player_2 = new Player([p2_group_perimeter, p2_body, p2_turret], {radius: 30, colRadius: 20, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
 
     // Shots
     var Shot = fabric.util.createClass(fabric.Circle, {
@@ -210,25 +252,37 @@ $(function() {
         }
     });
     var shotMap = {
-        "NORMAL SHOT": function(player_coord) {
-            return new Shot({radius: 2, fill: 'yellow', left: player_coord[0], top: player_coord[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+        "NORMAL SHOT": function(player_turret) {
+            return new Shot({radius: 2, colRadius: 2, fill: 'yellow', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
         },
-        "NO-GRAVITY SHOT": function(player_coord) {
-            return new noGravityShot({radius: 2, fill: 'red', left: player_coord[0], top: player_coord[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+        "NO-GRAVITY SHOT": function(player_turret) {
+            return new noGravityShot({radius: 2, colRadius: 2, fill: 'red', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
         },
-        "ANTI-GRAVITY SHOT": function(player_coord) {
-            return new antiGravityShot({radius: 2, fill: 'green', left: player_coord[0], top: player_coord[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+        "ANTI-GRAVITY SHOT": function(player_turret) {
+            return new antiGravityShot({radius: 2, colRadius: 2, fill: 'green', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
         }
     };
     var shot;
     var selected_shot;
     function addShot(selected_shot) {
-        var player_coord = [player_1.realX(), player_1.realY()];
-        shot = shotMap[selected_shot](player_coord);
+        var player_turret = [player_1.realX() + p1_turret.x2, player_1.realY() + p1_turret.y2];
+        shot = shotMap[selected_shot](player_turret);
     }
 
     // Planets
-    var test_planet = new fabric.Circle({radius: 100, left: 900, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000, type: "planet"});
+    var Planet = fabric.util.createClass(fabric.Circle, {
+        type: "Planet",
+
+        initialize: function(options) {
+            options || (options = { });
+            this.callSuper('initialize', options);
+        },
+
+        _render: function(ctx) {
+            this.callSuper('_render', ctx);
+        }
+    });
+    var test_planet = new Planet({radius: 100, colRadius: 100, left: 900, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
     test_planet.setGradient('fill', {
         x1: 0,
         y1: -test_planet.width / 2,
@@ -255,8 +309,8 @@ $(function() {
 
     function updateVelocity(object) {
         var g_forces = object.calculateGForce(objects_in_universe);
-        object.velocityX = object.velocityX + (g_forces[0] * game_time_unit);
-        object.velocityY = object.velocityY + (g_forces[1] * game_time_unit);
+        object.velocityX = object.velocityX + (g_forces[0] * GAME_TIME_UNIT);
+        object.velocityY = object.velocityY + (g_forces[1] * GAME_TIME_UNIT);
         if (object.left + object.velocityX < 0 || object.left + object.velocityX > canvas.width - object.width) {
             object.velocityX = -object.velocityX;
         }
@@ -266,7 +320,7 @@ $(function() {
     }
 
     function updatePosition(object) {
-        object.set({left: object.left + object.velocityX * game_time_unit, top: object.top + object.velocityY * game_time_unit});
+        object.set({left: object.left + object.velocityX * GAME_TIME_UNIT, top: object.top + object.velocityY * GAME_TIME_UNIT});
     }
 
     var objects_to_remove = [];
@@ -279,9 +333,9 @@ $(function() {
         for (var index in other_objects) {
             var opposing_obj = other_objects[index];
             var distance = distanceBetween(opposing_obj, object);
-            if ((opposing_obj.radius + object.radius) > distance && object.type == "Shot" && opposing_obj.playerId !== "dean" && object.playerId !== "dean") {
+            if ((opposing_obj.colRadius + object.colRadius) > distance && object.type == "Shot" && (opposing_obj.type == "Player" || opposing_obj.type == "Planet")) {
                 objects_to_remove.push(object);
-                if (opposing_obj.playerId == "kent") {
+                if (opposing_obj.type == "Player") {
                     damage += 1;
                     if (damage == 3) {
                         alert("GG It's like coffeezilla!")
@@ -307,16 +361,16 @@ $(function() {
             objects_to_remove = [];
         }
         canvas.renderAll();
-        setTimeout(animateLoop, 1000 / frame_rate);
+        setTimeout(animateLoop, 1000 / FRAME_RATE);
     }
 
     function fire(selected_shot) {
         addShot(selected_shot);
         canvas.add(shot);
         power = Number($(".power").text());
-        angle = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
-        shot.velocityX = Math.cos(degreeInRadians * angle) * ((power / 10));
-        shot.velocityY = Math.sin(degreeInRadians * angle) * ((power / 10));
+        angle = current_angle();
+        shot.velocityX = Math.cos(DEGREE_IN_RADIANS * angle) * ((power / 10));
+        shot.velocityY = Math.sin(DEGREE_IN_RADIANS * angle) * ((power / 10));
         objects_in_universe.push(shot);
     }
 
@@ -354,27 +408,36 @@ $(function() {
                     aim = 0;
                     keyPressed = true;
                 } else {
-                    aim = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
+                    aim = current_angle();
                 }
                 if (((aim * 10) + (key - 48)) <= 360) {
                     $(".aim").text((aim * 10) + (key - 48) + "˚");
+                } else {
+                    $(".aim").text("360˚");
                 }
             } else if (key == 38) {
-                aim = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
+                aim = current_angle();
                 $(".aim").text(aim + 1  + "˚");
             } else if (key == 40) {
-                aim = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
+                aim = current_angle();
                 $(".aim").text(aim - 1  + "˚");
             }
+            p1_turret.set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
+            p1_turret.setCoords();
         };
         aimWheel = function(event) {
-            var aim = Number($(".aim").text().substring(0, $(".aim").text().length - 1));
-            if ((event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) && (aim + 1) <= 360) {
-                $(".aim").text(aim + 1  + "˚");
+            var aim = current_angle();
+            if (event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) {
+                $(".aim").text(((aim + 1) % 360) + "˚");
             }
-            else if ((aim + 1) >= 2) {
-                $(".aim").text(aim - 1  + "˚");
+            else {
+                if (aim - 1 < 0) {
+                    aim = 359;
+                }
+                $(".aim").text(((aim - 1) % 360)  + "˚");
             }
+            p1_turret.set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
+            p1_turret.setCoords();
             keyPressed = false;
         };
         $(".fire-button").off();
