@@ -203,17 +203,17 @@ $(function() {
             return TURRET_LENGTH * (Math.sin(DEGREE_IN_RADIANS * angle));
         };
 
-    var p1_group_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
+    var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, opacity: 0, selectable: false, originX: "center", originY: "center"});
     var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
     var p1_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_1 = new Player([p1_group_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
 
-    var p2_group_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
+    var p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
     var p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
     var p2_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_2 = new Player([p2_group_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
 
     // Shots
     var Shot = fabric.util.createClass(fabric.Circle, {
@@ -534,16 +534,25 @@ $(function() {
     function selectShot() {
         $(".shot-button").css({display: "none"});
         $(".shot-selection").css({display: "block"});
-        $(".fire-btn-container").css({margin: "30px auto 0"});
-        $(".fire-button").css({marginTop: "20px"});
+        $(".fire-move-container").css({margin: "0 auto"});
+        $(".f-m-btn-container").css({paddingTop: "50px"});
         $(".shot-option").on("click", function() {
             $(".shot-button").text($(this).text()).css({display: "block"});
             $(".shot-selection").css({display: "none"});
-            $(".fire-btn-container").css({margin: "20px auto 0"});
-            $(".fire-button").css({marginTop: "0"});
+            $(".fire-move-container").css({margin: "20px auto 0"});
+            $(".f-m-btn-container").css({paddingTop: "0"});
             $(this).appendTo(".shot-selection");
             $(".shot-option").off();
         })
+    }
+
+    function setMove() {
+        p1_perimeter.animate({"radius": 200, "opacity": 0.5}, 300);
+        canvas.on("mouse:down", function(options) {
+            player_1.animate("left", (options.e.clientX) - player_1.radius);
+            player_1.animate("top", (options.e.clientY) - player_1.radius);
+            p1_perimeter.animate({"radius": TURRET_LENGTH, "opacity": 0}, 300);
+        });
     }
 
     $(".fire-button").on('click', function() {
@@ -553,13 +562,9 @@ $(function() {
     $(".aim-button").on("click", setAim);
     $(".power-button").on("click", setPower);
     $(".shot-button").on("click", selectShot);
+    $(".move-button").on("click", setMove);
 
     paramHover();
-
-    canvas.on("mouse:down", function(options) {
-        player_1.animate("left", (options.e.clientX) - player_1.radius);
-        player_1.animate("top", (options.e.clientY) - player_1.radius);
-    });
 
     modeChange(tearTitle, buildGame);
     animateLoop();
