@@ -203,8 +203,9 @@ $(function() {
             return TURRET_LENGTH * (Math.sin(DEGREE_IN_RADIANS * angle));
         };
 
-    var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, opacity: 0, selectable: false, originX: "center", originY: "center"});
+    var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
     var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
+//    var p1_move_limit = new fabric.Circle({radius: p1_body.radius, opacity: 0, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
     var p1_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
     var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
@@ -436,7 +437,6 @@ $(function() {
                 $(".aim").text(aim - 1  + "˚");
             }
             p1_turret.set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
-            p1_turret.setCoords();
         };
         aimWheel = function(event) {
             var aim = current_angle();
@@ -450,7 +450,6 @@ $(function() {
                 $(".aim").text(((aim - 1) % 360)  + "˚");
             }
             p1_turret.set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
-            p1_turret.setCoords();
             keyPressed = false;
         };
         $(".fire-button").off();
@@ -547,12 +546,27 @@ $(function() {
     }
 
     function setMove() {
-        p1_perimeter.animate({"radius": 200, "opacity": 0.5}, 300);
-        canvas.on("mouse:down", function(options) {
+        var p1_move_limit = new fabric.Circle({radius: p1_body.radius, left: player_1.realX(), top: player_1.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
+        canvas.add(p1_move_limit);
+        p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
+        p1_move_limit.animate("radius", 200, {
+            duration: 300
+        });
+        function confirmMove(options) {
             player_1.animate("left", (options.e.clientX) - player_1.radius);
             player_1.animate("top", (options.e.clientY) - player_1.radius);
-            p1_perimeter.animate({"radius": TURRET_LENGTH, "opacity": 0}, 300);
-        });
+            p1_move_limit.animate("radius", p1_body.radius, {
+                duration: 300,
+                onComplete: function() {
+                    canvas.remove(p1_move_limit)
+                }
+            });
+            p1_move_limit.animate("opacity", 0, {
+                duration: 300
+            });
+            canvas.off("mouse:down", confirmMove);
+        }
+        canvas.on("mouse:down", confirmMove);
     }
 
     $(".fire-button").on('click', function() {
