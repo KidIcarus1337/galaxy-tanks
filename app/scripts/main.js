@@ -42,8 +42,7 @@ $(function() {
 
     function buildGame() {
         $(".game-screen").delay(500).fadeIn(500, function() {
-//            drawStuff();
-//            window.addEventListener("click", bounce);
+            $(window).on("keydown", setMove);
         });
     }
 
@@ -545,28 +544,70 @@ $(function() {
         })
     }
 
-    function setMove() {
+    function setMove(e) {
+        console.log(e.type);
         var p1_move_limit = new fabric.Circle({radius: p1_body.radius, left: player_1.realX(), top: player_1.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
-        canvas.add(p1_move_limit);
-        p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
-        p1_move_limit.animate("radius", 200, {
-            duration: 300
-        });
-        function confirmMove(options) {
-            player_1.animate("left", (options.e.clientX) - player_1.radius);
-            player_1.animate("top", (options.e.clientY) - player_1.radius);
+        function removeMoveLimit() {
             p1_move_limit.animate("radius", p1_body.radius, {
                 duration: 300,
-                onComplete: function() {
+                onComplete: function () {
                     canvas.remove(p1_move_limit)
                 }
             });
             p1_move_limit.animate("opacity", 0, {
                 duration: 300
             });
-            canvas.off("mouse:down", confirmMove);
         }
-        canvas.on("mouse:down", confirmMove);
+        function confirmMove(options) {
+            removeMoveLimit();
+            player_1.animate("left", (options.e.clientX) - player_1.radius);
+            player_1.animate("top", (options.e.clientY) - player_1.radius);
+            rebindSetMove();
+        }
+        function cancelMove(e) {
+            if (e) {
+                key = e.keyCode || e.charCode;
+                if (key == 27 || key == 77) {
+                    removeMoveLimit();
+                    rebindSetMove();
+                    return;
+                } else {
+                    return;
+                }
+            }
+            removeMoveLimit();
+            rebindSetMove();
+        }
+        function unbindSetMove() {
+            canvas.on("mouse:down", confirmMove);
+            $(window).off("keydown", setMove).on("keydown", cancelMove);
+            $(".move-button").off().on("click", cancelMove);
+        }
+        function rebindSetMove() {
+            canvas.off("mouse:down", confirmMove);
+            $(".move-button").off().on("click", setMove);
+            $(window).off("keydown", cancelMove).on("keydown", setMove)
+        }
+        if (e.type == "keydown") {
+            key = e.keyCode || e.charCode;
+            if (key == 77) {
+                unbindSetMove();
+                canvas.add(p1_move_limit);
+                p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
+                p1_move_limit.animate("radius", 200, {
+                    duration: 300
+                });
+                return;
+            } else {
+                return;
+            }
+        }
+        unbindSetMove();
+        canvas.add(p1_move_limit);
+        p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
+        p1_move_limit.animate("radius", 200, {
+            duration: 300
+        });
     }
 
     $(".fire-button").on('click', function() {
