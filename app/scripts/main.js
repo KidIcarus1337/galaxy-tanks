@@ -204,7 +204,6 @@ $(function() {
 
     var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
     var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
-//    var p1_move_limit = new fabric.Circle({radius: p1_body.radius, opacity: 0, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
     var p1_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
     var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
@@ -292,7 +291,7 @@ $(function() {
             this.callSuper('_render', ctx);
         }
     });
-    var test_planet = new Planet({radius: 100, left: 900, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
+    var test_planet = new Planet({radius: 150, left: 800, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
     test_planet.setGradient('fill', {
         x1: 0,
         y1: -test_planet.width / 2,
@@ -545,8 +544,11 @@ $(function() {
     }
 
     function setMove(e) {
-        console.log(e.type);
         var p1_move_limit = new fabric.Circle({radius: p1_body.radius, left: player_1.realX(), top: player_1.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
+        var phantom_p1 = new fabric.Group([
+            fabric.util.object.clone(player_1.item(0)),
+            fabric.util.object.clone(player_1.item(1)),
+            fabric.util.object.clone(player_1.item(2))], {radius: TURRET_LENGTH, left: player_1.left, top: player_1.top, selectable: false});
         function removeMoveLimit() {
             p1_move_limit.animate("radius", p1_body.radius, {
                 duration: 300,
@@ -557,57 +559,63 @@ $(function() {
             p1_move_limit.animate("opacity", 0, {
                 duration: 300
             });
+            canvas.remove(phantom_p1);
         }
         function confirmMove(options) {
             removeMoveLimit();
-            player_1.animate("left", (options.e.clientX) - player_1.radius);
-            player_1.animate("top", (options.e.clientY) - player_1.radius);
+            player_1.animate("left", options.e.clientX - player_1.radius);
+            player_1.animate("top", options.e.clientY - player_1.radius);
             rebindSetMove();
         }
         function cancelMove(e) {
-            if (e) {
-                key = e.keyCode || e.charCode;
-                if (key == 27 || key == 77) {
-                    removeMoveLimit();
-                    rebindSetMove();
-                    return;
-                } else {
-                    return;
+            if (e.type == "keydown") {
+                if (e) {
+                    key = e.keyCode || e.charCode;
+                    if (key == 27 || key == 77) {
+                        removeMoveLimit();
+                        rebindSetMove();
+                        return;
+                    } else {
+                        return;
+                    }
                 }
             }
             removeMoveLimit();
             rebindSetMove();
         }
+        function setMoveCursor(options) {
+            phantom_p1.set({left: options.e.clientX - phantom_p1.radius, top: options.e.clientY - phantom_p1.radius});
+        }
         function unbindSetMove() {
-            canvas.on("mouse:down", confirmMove);
+            canvas.on("mouse:down", confirmMove).on("mouse:move", setMoveCursor);
             $(window).off("keydown", setMove).on("keydown", cancelMove);
             $(".move-button").off().on("click", cancelMove);
         }
         function rebindSetMove() {
-            canvas.off("mouse:down", confirmMove);
+            canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
             $(".move-button").off().on("click", setMove);
             $(window).off("keydown", cancelMove).on("keydown", setMove)
+        }
+        function activateSetMove() {
+            unbindSetMove();
+            phantom_p1.item(1).set("opacity", 0.5);
+            phantom_p1.item(2).set("opacity", 0.5);
+            canvas.add(p1_move_limit, phantom_p1);
+            p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
+            p1_move_limit.animate("radius", 200, {
+                duration: 300
+            });
         }
         if (e.type == "keydown") {
             key = e.keyCode || e.charCode;
             if (key == 77) {
-                unbindSetMove();
-                canvas.add(p1_move_limit);
-                p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
-                p1_move_limit.animate("radius", 200, {
-                    duration: 300
-                });
+                activateSetMove();
                 return;
             } else {
                 return;
             }
         }
-        unbindSetMove();
-        canvas.add(p1_move_limit);
-        p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
-        p1_move_limit.animate("radius", 200, {
-            duration: 300
-        });
+        activateSetMove();
     }
 
     $(".fire-button").on('click', function() {
