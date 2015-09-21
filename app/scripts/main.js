@@ -561,10 +561,10 @@ $(function() {
             });
             canvas.remove(phantom_p1);
         }
-        function confirmMove(options) {
+        function confirmMove() {
             removeMoveLimit();
-            player_1.animate("left", options.e.clientX - player_1.radius);
-            player_1.animate("top", options.e.clientY - player_1.radius);
+            player_1.animate("left", phantom_p1.left);
+            player_1.animate("top", phantom_p1.top);
             rebindSetMove();
         }
         function cancelMove(e) {
@@ -584,15 +584,30 @@ $(function() {
             rebindSetMove();
         }
         function setMoveCursor(options) {
-            phantom_p1.set({left: options.e.clientX - phantom_p1.radius, top: options.e.clientY - phantom_p1.radius});
+            if ($.inArray(phantom_p1, canvas.getObjects()) == -1) {
+                canvas.add(phantom_p1);
+            }
+            var dx = (options.e.clientX - p1_move_limit.left), dy = (options.e.clientY - p1_move_limit.top);
+            var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+            if (distance + p1_body.radius <= p1_move_limit.radius) {
+                phantom_p1.set({left: options.e.clientX - phantom_p1.radius, top: options.e.clientY - phantom_p1.radius});
+            } else {
+                var cursor_angle = Math.atan2(dy, dx);
+                var x = ((p1_move_limit.radius - p1_body.radius) * Math.cos(cursor_angle)) + p1_move_limit.left - phantom_p1.radius, y = ((p1_move_limit.radius - p1_body.radius) * Math.sin(cursor_angle)) + p1_move_limit.top - phantom_p1.radius;
+                phantom_p1.set({left: x, top: y});
+            }
         }
         function unbindSetMove() {
             canvas.on("mouse:down", confirmMove).on("mouse:move", setMoveCursor);
+            $(".game-ui").on("mousemove", function() {
+                canvas.remove(phantom_p1);
+            });
             $(window).off("keydown", setMove).on("keydown", cancelMove);
             $(".move-button").off().on("click", cancelMove);
         }
         function rebindSetMove() {
             canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
+            $(".game-ui").off();
             $(".move-button").off().on("click", setMove);
             $(window).off("keydown", cancelMove).on("keydown", setMove)
         }
@@ -600,7 +615,7 @@ $(function() {
             unbindSetMove();
             phantom_p1.item(1).set("opacity", 0.5);
             phantom_p1.item(2).set("opacity", 0.5);
-            canvas.add(p1_move_limit, phantom_p1);
+            canvas.add(p1_move_limit);
             p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
             p1_move_limit.animate("radius", 200, {
                 duration: 300
