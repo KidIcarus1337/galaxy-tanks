@@ -42,7 +42,7 @@ $(function() {
 
     function buildGame() {
         $(".game-screen").delay(500).fadeIn(500, function() {
-            $(window).on("keydown", setMove);
+            $(window).on("keydown", moveListener);
         });
     }
 
@@ -206,13 +206,13 @@ $(function() {
     var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
     var p1_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8});
 
     var p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
     var p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
     var p2_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8});
 
     // Shots
     var Shot = fabric.util.createClass(fabric.Circle, {
@@ -375,15 +375,18 @@ $(function() {
         setTimeout(animateLoop, 1000 / FRAME_RATE);
     }
 
-    function fire(selected_shot) {
-        addShot(selected_shot);
-        shot.set({left: shot.left - shot.radius, top: shot.top - shot.radius});
-        canvas.add(shot);
-        power = Number($(".power").text());
-        angle = current_angle();
-        shot.velocityX = Math.cos(DEGREE_IN_RADIANS * angle) * ((power / 10));
-        shot.velocityY = Math.sin(DEGREE_IN_RADIANS * angle) * ((power / 10));
-        objects_in_universe.push(shot);
+    function fire(selected_shot, player) {
+        if (player.actionPoints >= 3) {
+            addShot(selected_shot);
+            shot.set({left: shot.left - shot.radius, top: shot.top - shot.radius});
+            canvas.add(shot);
+            power = Number($(".power").text());
+            angle = current_angle();
+            shot.velocityX = Math.cos(DEGREE_IN_RADIANS * angle) * ((power / 10));
+            shot.velocityY = Math.sin(DEGREE_IN_RADIANS * angle) * ((power / 10));
+            objects_in_universe.push(shot);
+            spendAP(player, 3);
+        }
     }
 
     // GAME UI
@@ -540,109 +543,173 @@ $(function() {
             $(".f-m-btn-container").css({paddingTop: "0"});
             $(this).appendTo(".shot-selection");
             $(".shot-option").off();
-        })
+        });
     }
 
-    function setMove(e) {
-        var p1_move_limit = new fabric.Circle({radius: p1_body.radius, left: player_1.realX(), top: player_1.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
-        var phantom_p1 = new fabric.Group([
-            fabric.util.object.clone(player_1.item(0)),
-            fabric.util.object.clone(player_1.item(1)),
-            fabric.util.object.clone(player_1.item(2))], {radius: TURRET_LENGTH, left: player_1.left, top: player_1.top, selectable: false});
-        function removeMoveLimit() {
-            p1_move_limit.animate("radius", p1_body.radius, {
-                duration: 300,
-                onComplete: function () {
-                    canvas.remove(p1_move_limit)
-                }
-            });
-            p1_move_limit.animate("opacity", 0, {
-                duration: 300
-            });
-            canvas.remove(phantom_p1);
-        }
-        function confirmMove() {
-            removeMoveLimit();
-            player_1.animate("left", phantom_p1.left);
-            player_1.animate("top", phantom_p1.top);
-            rebindSetMove();
-        }
-        function cancelMove(e) {
-            if (e.type == "keydown") {
-                if (e) {
-                    key = e.keyCode || e.charCode;
-                    if (key == 27 || key == 77) {
-                        removeMoveLimit();
-                        rebindSetMove();
-                        return;
-                    } else {
-                        return;
+    function setMove(e, player) {
+        if (player.actionPoints > 0) {
+            var p1_move_limit = new fabric.Circle({radius: p1_body.radius, left: player_1.realX(), top: player_1.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
+            var phantom_p1 = new fabric.Group([
+                fabric.util.object.clone(player_1.item(0)),
+                fabric.util.object.clone(player_1.item(1)),
+                fabric.util.object.clone(player_1.item(2))], {radius: TURRET_LENGTH, left: player_1.left, top: player_1.top, selectable: false});
+            var pnts_to_be_rmvd = 0;
+
+            function removeMoveLimit() {
+                p1_move_limit.animate("radius", p1_body.radius, {
+                    duration: 300,
+                    onComplete: function () {
+                        canvas.remove(p1_move_limit);
+                    }
+                });
+                p1_move_limit.animate("opacity", 0, {
+                    duration: 300
+                });
+                canvas.remove(phantom_p1);
+            }
+            function confirmMove() {
+                removeMoveLimit();
+                player_1.animate("left", phantom_p1.left);
+                player_1.animate("top", phantom_p1.top);
+                spendAP(player, pnts_to_be_rmvd);
+                rebindSetMove();
+            }
+            function cancelMove(e) {
+                var to_be_removed = $(".to-be-removed");
+                if (e.type == "keydown") {
+                    if (e) {
+                        key = e.keyCode || e.charCode;
+                        if (key == 27 || key == 77) {
+                            to_be_removed.removeClass("to-be-removed").addClass("available");
+                            removeMoveLimit();
+                            rebindSetMove();
+                            return;
+                        } else {
+                            return;
+                        }
                     }
                 }
+                to_be_removed.removeClass("to-be-removed").addClass("available");
+                removeMoveLimit();
+                rebindSetMove();
             }
-            removeMoveLimit();
-            rebindSetMove();
-        }
-        function setMoveCursor(options) {
-            if ($.inArray(phantom_p1, canvas.getObjects()) == -1) {
-                canvas.add(phantom_p1);
+            function setMoveCursor(options) {
+                if ($.inArray(phantom_p1, canvas.getObjects()) == -1) {
+                    canvas.add(phantom_p1);
+                }
+                var dx = (options.e.clientX - p1_move_limit.left), dy = (options.e.clientY - p1_move_limit.top);
+                var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+                if (distance + p1_body.radius <= p1_move_limit.radius) {
+                    phantom_p1.set({left: options.e.clientX - phantom_p1.radius, top: options.e.clientY - phantom_p1.radius});
+                } else {
+                    var cursor_angle = Math.atan2(dy, dx);
+                    var x = ((p1_move_limit.radius - p1_body.radius) * Math.cos(cursor_angle)) + p1_move_limit.left - phantom_p1.radius, y = ((p1_move_limit.radius - p1_body.radius) * Math.sin(cursor_angle)) + p1_move_limit.top - phantom_p1.radius;
+                    phantom_p1.set({left: x, top: y});
+                }
+                distance = distanceBetween(phantom_p1, player_1);
+                var n = 0;
+                $(".to-be-removed").removeClass("to-be-removed").addClass("available");
+                $($(".available").get().reverse()).each(function() {
+                    if (n < (distance / 50)) {
+                        $(this).removeClass("available").addClass("to-be-removed");
+                        n++;
+                        pnts_to_be_rmvd = n;
+                    }
+                });
             }
-            var dx = (options.e.clientX - p1_move_limit.left), dy = (options.e.clientY - p1_move_limit.top);
-            var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-            if (distance + p1_body.radius <= p1_move_limit.radius) {
-                phantom_p1.set({left: options.e.clientX - phantom_p1.radius, top: options.e.clientY - phantom_p1.radius});
-            } else {
-                var cursor_angle = Math.atan2(dy, dx);
-                var x = ((p1_move_limit.radius - p1_body.radius) * Math.cos(cursor_angle)) + p1_move_limit.left - phantom_p1.radius, y = ((p1_move_limit.radius - p1_body.radius) * Math.sin(cursor_angle)) + p1_move_limit.top - phantom_p1.radius;
-                phantom_p1.set({left: x, top: y});
+            function unbindSetMove() {
+                canvas.on("mouse:down", confirmMove).on("mouse:move", setMoveCursor);
+                $(".game-ui").on("mousemove", function() {
+                    canvas.remove(phantom_p1);
+                    $(".to-be-removed").removeClass("to-be-removed").addClass("available");
+                });
+                $(".move-button").off().on("click", cancelMove);
+                $(window).off("keydown", moveListener).on("keydown", cancelMove);
             }
-        }
-        function unbindSetMove() {
-            canvas.on("mouse:down", confirmMove).on("mouse:move", setMoveCursor);
-            $(".game-ui").on("mousemove", function() {
-                canvas.remove(phantom_p1);
-            });
-            $(window).off("keydown", setMove).on("keydown", cancelMove);
-            $(".move-button").off().on("click", cancelMove);
-        }
-        function rebindSetMove() {
-            canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
-            $(".game-ui").off();
-            $(".move-button").off().on("click", setMove);
-            $(window).off("keydown", cancelMove).on("keydown", setMove)
-        }
-        function activateSetMove() {
-            unbindSetMove();
-            phantom_p1.item(1).set("opacity", 0.5);
-            phantom_p1.item(2).set("opacity", 0.5);
-            canvas.add(p1_move_limit);
-            p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
-            p1_move_limit.animate("radius", 200, {
-                duration: 300
-            });
-        }
-        if (e.type == "keydown") {
-            key = e.keyCode || e.charCode;
-            if (key == 77) {
-                activateSetMove();
-                return;
-            } else {
-                return;
+            function rebindSetMove() {
+                canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
+                $(".game-ui").off();
+                $(".move-button").off().on("click", function(e) {
+                    setMove(e, current_player)
+                });
+                $(window).off("keydown", cancelMove).on("keydown", moveListener)
             }
+            function activateSetMove(player) {
+                unbindSetMove();
+                phantom_p1.item(1).set("opacity", 0.5);
+                phantom_p1.item(2).set("opacity", 0.5);
+                canvas.add(p1_move_limit);
+                p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
+                p1_move_limit.animate("radius", (player.actionPoints * 50) - player_1.radius + 1, {
+                    duration: 300
+                });
+            }
+            if (e.type == "keydown") {
+                key = e.keyCode || e.charCode;
+                if (key == 77) {
+                    activateSetMove(player);
+                    return;
+                } else {
+                    return;
+                }
+            }
+            activateSetMove(player);
         }
-        activateSetMove();
+    }
+
+    function moveListener(e) {
+        key = e.keyCode || e.charCode;
+        if (key == 77) {
+            setMove(e, current_player);
+        }
     }
 
     $(".fire-button").on('click', function() {
         selected_shot = $(".shot-button").text();
-        fire(selected_shot);
+        fire(selected_shot, current_player);
     });
     $(".aim-button").on("click", setAim);
     $(".power-button").on("click", setPower);
     $(".shot-button").on("click", selectShot);
-    $(".move-button").on("click", setMove);
+    $(".move-button").on("click", function(e) {
+        setMove(e, current_player)
+    });
 
     paramHover();
+
+    function spendAP(player, pnts_to_be_rmvd) {
+        console.log(player);
+        player.set({actionPoints: player.actionPoints - pnts_to_be_rmvd});
+        var n = 1;
+        $(".to-be-removed").removeClass("to-be-removed").addClass("available");
+        $($(".available").get().reverse()).each(function() {
+            if (n <= pnts_to_be_rmvd) {
+                $(this).removeClass("available");
+                n++;
+            }
+        });
+        assessAP(player)
+    }
+
+    function assessAP(player) {
+        var move_button = $(".move-button"), fire_button = $(".fire-button");
+        if (player.actionPoints == 0) {
+            if (move_button.hasClass("button-disabled") == false) {
+                move_button.toggleClass("button-disabled");
+            }
+        } else if (move_button.hasClass("button-disabled") == true) {
+            move_button.toggleClass("button-disabled");
+        }
+        if (player.actionPoints < 3) {
+            if (fire_button.hasClass("button-disabled") == false) {
+                fire_button.toggleClass("button-disabled");
+            }
+        } else if (fire_button.hasClass("button-disabled") == true) {
+            fire_button.toggleClass("button-disabled");
+        }
+    }
+
+    var current_player = player_1;
 
     modeChange(tearTitle, buildGame);
     animateLoop();
