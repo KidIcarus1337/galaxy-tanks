@@ -273,8 +273,8 @@ $(function() {
     };
     var shot;
     var selected_shot;
-    function addShot(selected_shot) {
-        var player_turret = [player_1.realX() + p1_turret.x2, player_1.realY() + p1_turret.y2];
+    function addShot(selected_shot, player) {
+        var player_turret = [player.realX() + player.item(2).x2, player.realY() + player.item(2).y2];
         shot = shotMap[selected_shot](player_turret);
     }
 
@@ -377,7 +377,7 @@ $(function() {
 
     function fire(selected_shot, player) {
         if (player.actionPoints >= 3) {
-            addShot(selected_shot);
+            addShot(selected_shot, player);
             shot.set({left: shot.left - shot.radius, top: shot.top - shot.radius});
             canvas.add(shot);
             power = Number($(".power").text());
@@ -403,12 +403,13 @@ $(function() {
     var aimKeyPress;
     var aimWheel;
 
-    function setAim() {
-        $(".aim").stop().animate({"font-size": 30}, 200);
+    function setAim(player) {
+        var $aim = $(".aim");
+        $aim.stop().animate({"font-size": 30}, 200);
         $(".aim-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
         setTimeout(function() {
             $(window).on("click", confirmAim).on("keydown", function(e) {
-                key = e.keyCode || e.charCode;
+                var key = e.keyCode || e.charCode;
                 if (key == 13) {
                     confirmAim();
                 }
@@ -416,7 +417,7 @@ $(function() {
         }, 50);
         var keyPressed = false;
         aimKeyPress = function(e) {
-            key = e.keyCode || e.charCode;
+            var key = e.keyCode || e.charCode;
             var aim;
             if ((key >= 48 || key >= 48) && (key <= 57 || key <= 48)) {
                 if (keyPressed == false) {
@@ -426,31 +427,31 @@ $(function() {
                     aim = current_angle();
                 }
                 if (((aim * 10) + (key - 48)) <= 360) {
-                    $(".aim").text((aim * 10) + (key - 48) + "˚");
+                    $aim.text((aim * 10) + (key - 48) + "˚");
                 } else {
-                    $(".aim").text("360˚");
+                    $aim.text("360˚");
                 }
             } else if (key == 38) {
                 aim = current_angle();
-                $(".aim").text(aim + 1  + "˚");
+                $aim.text(aim + 1  + "˚");
             } else if (key == 40) {
                 aim = current_angle();
-                $(".aim").text(aim - 1  + "˚");
+                $aim.text(aim - 1  + "˚");
             }
-            p1_turret.set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
+            player.item(2).set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
         };
         aimWheel = function(event) {
             var aim = current_angle();
             if (event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) {
-                $(".aim").text(((aim + 1) % 360) + "˚");
+                $aim.text(((aim + 1) % 360) + "˚");
             }
             else {
                 if (aim - 1 < 0) {
                     aim = 359;
                 }
-                $(".aim").text(((aim - 1) % 360)  + "˚");
+                $aim.text(((aim - 1) % 360)  + "˚");
             }
-            p1_turret.set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
+            player.item(2).set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
             keyPressed = false;
         };
         $(".fire-button").off();
@@ -460,24 +461,29 @@ $(function() {
     }
 
     function confirmAim() {
-        $(".aim").stop().animate({"font-size": 14}, 200);
+        var $aim = $(".aim");
+        $aim.stop().animate({"font-size": 14}, 200);
         $(window).off("click", confirmAim).off("mousewheel DOMMouseScroll", aimWheel).off("keydown", aimKeyPress);
-        $(".aim-button").on("click", setAim).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
+        $(".aim-button").on("click", function()
+            {setAim(current_player);
+        }).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
         $(".fire-button").on('click', function() {
             selected_shot = $(".shot-button").text();
             fire(selected_shot, current_player);
         });
+        current_player.set({aim: $aim.text()})
     }
 
     var powerKeyPress;
     var powerWheel;
 
     function setPower() {
-        $(".power").stop().animate({"font-size": 30}, 200);
+        var $power = $(".power");
+        $power.stop().animate({"font-size": 30}, 200);
         $(".power-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
         setTimeout(function() {
             $(window).on("click", confirmPower).on("keydown", function(e) {
-                key = e.keyCode || e.charCode;
+                var key = e.keyCode || e.charCode;
                 if (key == 13) {
                     confirmPower();
                 }
@@ -485,7 +491,7 @@ $(function() {
         }, 50);
         var keyPressed = false;
         powerKeyPress = function(e) {
-            key = e.keyCode || e.charCode;
+            var key = e.keyCode || e.charCode;
             var power;
             if ((key >= 48 || key >= 48) && (key <= 57 || key <= 48)) {
                 if (keyPressed == false) {
@@ -498,20 +504,20 @@ $(function() {
                     $(".power").text((power * 10) + (key - 48));
                 }
             } else if (key == 38) {
-                power = Number($(".power").text());
-                $(".power").text(power + 1);
+                power = Number($power.text());
+                $power.text(power + 1);
             } else if (key == 40) {
-                power = Number($(".power").text());
-                $(".power").text(power - 1);
+                power = Number($power.text());
+                $power.text(power - 1);
             }
         };
         powerWheel = function(event) {
-            var power = Number($(".power").text());
+            var power = Number($power.text());
             if ((event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) && (power + 1) <= 100) {
-                $(".power").text(power + 1);
+                $power.text(power + 1);
             }
             else if ((power + 1) >= 3) {
-                $(".power").text(power - 1);
+                $power.text(power - 1);
             }
             keyPressed = false;
         };
@@ -522,13 +528,16 @@ $(function() {
     }
 
     function confirmPower() {
-        $(".power").stop().animate({"font-size": 14}, 200);
+        var $power = $(".power");
+        $power.stop().animate({"font-size": 14}, 200);
         $(window).off("click", confirmPower).off("mousewheel DOMMouseScroll", powerWheel).off("keydown", powerKeyPress);
         $(".power-button").on("click", setPower).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
         $(".fire-button").on('click', function() {
             selected_shot = $(".shot-button").text();
             fire(selected_shot, current_player);
         });
+        current_player.set({power: $power.text()})
+
     }
 
     function selectShot() {
@@ -548,29 +557,29 @@ $(function() {
 
     function setMove(e, player) {
         if (player.actionPoints > 0) {
-            var p1_move_limit = new fabric.Circle({radius: p1_body.radius, left: player_1.realX(), top: player_1.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
-            var phantom_p1 = new fabric.Group([
-                fabric.util.object.clone(player_1.item(0)),
-                fabric.util.object.clone(player_1.item(1)),
-                fabric.util.object.clone(player_1.item(2))], {radius: TURRET_LENGTH, left: player_1.left, top: player_1.top, selectable: false});
+            var move_limit = new fabric.Circle({radius: p1_body.radius, left: player.realX(), top: player.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
+            var move_phantom = new fabric.Group([
+                fabric.util.object.clone(player.item(0)),
+                fabric.util.object.clone(player.item(1)),
+                fabric.util.object.clone(player.item(2))], {radius: TURRET_LENGTH, left: player.left, top: player.top, selectable: false});
             var pnts_to_be_rmvd = 0;
 
             function removeMoveLimit() {
-                p1_move_limit.animate("radius", p1_body.radius, {
+                move_limit.animate("radius", p1_body.radius, {
                     duration: 300,
                     onComplete: function () {
-                        canvas.remove(p1_move_limit);
+                        canvas.remove(move_limit);
                     }
                 });
-                p1_move_limit.animate("opacity", 0, {
+                move_limit.animate("opacity", 0, {
                     duration: 300
                 });
-                canvas.remove(phantom_p1);
+                canvas.remove(move_phantom);
             }
             function confirmMove() {
                 removeMoveLimit();
-                player_1.animate("left", phantom_p1.left);
-                player_1.animate("top", phantom_p1.top);
+                player.animate("left", move_phantom.left);
+                player.animate("top", move_phantom.top);
                 spendAP(player, pnts_to_be_rmvd);
                 rebindSetMove();
             }
@@ -578,7 +587,7 @@ $(function() {
                 var to_be_removed = $(".to-be-removed");
                 if (e.type == "keydown") {
                     if (e) {
-                        key = e.keyCode || e.charCode;
+                        var key = e.keyCode || e.charCode;
                         if (key == 27 || key == 77) {
                             to_be_removed.removeClass("to-be-removed").addClass("available");
                             removeMoveLimit();
@@ -594,19 +603,19 @@ $(function() {
                 rebindSetMove();
             }
             function setMoveCursor(options) {
-                if ($.inArray(phantom_p1, canvas.getObjects()) == -1) {
-                    canvas.add(phantom_p1);
+                if ($.inArray(move_phantom, canvas.getObjects()) == -1) {
+                    canvas.add(move_phantom);
                 }
-                var dx = (options.e.clientX - p1_move_limit.left), dy = (options.e.clientY - p1_move_limit.top);
+                var dx = (options.e.clientX - move_limit.left), dy = (options.e.clientY - move_limit.top);
                 var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-                if (distance + p1_body.radius <= p1_move_limit.radius) {
-                    phantom_p1.set({left: options.e.clientX - phantom_p1.radius, top: options.e.clientY - phantom_p1.radius});
+                if (distance + p1_body.radius <= move_limit.radius) {
+                    move_phantom.set({left: options.e.clientX - move_phantom.radius, top: options.e.clientY - move_phantom.radius});
                 } else {
                     var cursor_angle = Math.atan2(dy, dx);
-                    var x = ((p1_move_limit.radius - p1_body.radius) * Math.cos(cursor_angle)) + p1_move_limit.left - phantom_p1.radius, y = ((p1_move_limit.radius - p1_body.radius) * Math.sin(cursor_angle)) + p1_move_limit.top - phantom_p1.radius;
-                    phantom_p1.set({left: x, top: y});
+                    var x = ((move_limit.radius - p1_body.radius) * Math.cos(cursor_angle)) + move_limit.left - move_phantom.radius, y = ((move_limit.radius - p1_body.radius) * Math.sin(cursor_angle)) + move_limit.top - move_phantom.radius;
+                    move_phantom.set({left: x, top: y});
                 }
-                distance = distanceBetween(phantom_p1, player_1);
+                distance = distanceBetween(move_phantom, player);
                 var n = 0;
                 $(".to-be-removed").removeClass("to-be-removed").addClass("available");
                 $($(".available").get().reverse()).each(function() {
@@ -620,7 +629,7 @@ $(function() {
             function unbindSetMove() {
                 canvas.on("mouse:down", confirmMove).on("mouse:move", setMoveCursor);
                 $(".game-ui").on("mousemove", function() {
-                    canvas.remove(phantom_p1);
+                    canvas.remove(move_phantom);
                     $(".to-be-removed").removeClass("to-be-removed").addClass("available");
                 });
                 $(".move-button").off().on("click", cancelMove);
@@ -636,16 +645,16 @@ $(function() {
             }
             function activateSetMove(player) {
                 unbindSetMove();
-                phantom_p1.item(1).set("opacity", 0.5);
-                phantom_p1.item(2).set("opacity", 0.5);
-                canvas.add(p1_move_limit);
-                p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
-                p1_move_limit.animate("radius", 50 + (player.actionPoints * 50) - player_1.radius, {
+                move_phantom.item(1).set("opacity", 0.5);
+                move_phantom.item(2).set("opacity", 0.5);
+                canvas.add(move_limit);
+                move_limit.moveTo(canvas.getObjects().indexOf(player));
+                move_limit.animate("radius", 50 + (player.actionPoints * 50) - player.radius, {
                     duration: 300
                 });
             }
             if (e.type == "keydown") {
-                key = e.keyCode || e.charCode;
+                var key = e.keyCode || e.charCode;
                 if (key == 77) {
                     activateSetMove(player);
                     return;
@@ -658,7 +667,7 @@ $(function() {
     }
 
     function moveListener(e) {
-        key = e.keyCode || e.charCode;
+        var key = e.keyCode || e.charCode;
         if (key == 77) {
             setMove(e, current_player);
         }
@@ -668,7 +677,9 @@ $(function() {
         selected_shot = $(".shot-button").text();
         fire(selected_shot, current_player);
     });
-    $(".aim-button").on("click", setAim);
+    $(".aim-button").on("click", function() {
+        setAim(current_player);
+    });
     $(".power-button").on("click", setPower);
     $(".shot-button").on("click", selectShot);
     $(".move-button").on("click", function(e) {
@@ -678,7 +689,6 @@ $(function() {
     paramHover();
 
     function spendAP(player, pnts_to_be_rmvd) {
-        console.log(player);
         player.set({actionPoints: player.actionPoints - pnts_to_be_rmvd});
         var n = 1;
         $(".to-be-removed").removeClass("to-be-removed").addClass("available");
@@ -710,6 +720,15 @@ $(function() {
     }
 
     var current_player = player_1;
+
+    function endTurn(current_player) {
+        if (current_player == player_1) {
+            current_player = player_2;
+            current_player.set({actionPoints: 8});
+            $(".aim").text(current_player.aim + "˚");
+            $(".power").text(current_player.power);
+        }
+    }
 
     modeChange(tearTitle, buildGame);
     animateLoop();

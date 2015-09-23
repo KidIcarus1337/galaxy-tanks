@@ -43,7 +43,7 @@ body {
     border-bottom: 1px solid #5f5f5f;
 }
 
-.menu-button, .fire-button, .move-button, .shot-button, .shot-option {
+.menu-button, .fire-button, .move-button, .shot-button, .shot-option, .end-button {
     background-color: black;
     border: 1px solid #fff;
     border-radius: 2px;
@@ -62,7 +62,7 @@ button:focus {
 /* GAME UI
 --------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------- */
-.game-ui {
+.player-controls {
     position: absolute;
     width: 760px;
     left: 0;
@@ -76,7 +76,7 @@ button:focus {
     background-color: #1f1f1f;
 }
 
-.game-ui-top {
+.player-controls-top {
     width: 80%;
     margin: 0 auto;
 }
@@ -137,7 +137,7 @@ button:focus {
     bottom: -30px;
 }
 
-.shot-option, .shot-button, .fire-button, .move-button {
+.shot-option, .shot-button, .fire-button, .move-button, .end-button {
     width: 100%;
     color: #fff;
 }
@@ -157,7 +157,7 @@ button:focus {
     float: right;
 }
 
-.fire-button, .move-button {
+.fire-button, .move-button, .end-button {
     height: 35px;
 }
 
@@ -173,7 +173,7 @@ button:focus {
     border-top: 0;
 }
 
-.game-ui-bot {
+.player-controls-bot {
     margin: 20px auto 0;
     padding-top: 10px;
     display: table;
@@ -204,6 +204,17 @@ button:focus {
     border-color: #7c7c7c;
     color: #7c7c7c;
     cursor: default;
+}
+
+.end-turn {
+    width: 150px;
+    position: absolute;
+    right: 100px;
+    bottom: 100px;
+}
+
+.end-button {
+
 }
 
 /* MEDIA QUERIES

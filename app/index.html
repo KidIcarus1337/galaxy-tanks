@@ -30,60 +30,65 @@
 </section>
 <section class="game-screen">
     <canvas id="canvas"></canvas>
-    <div class="game-ui container">
-        <div class="game-ui-top">
-            <div class="fire-param-cont aim-container">
-                <h3 class="unselectable">AIM</h3>
-                <div class="param-button aim-button">
-                    <p class="unselectable fire-param aim">0˚</p>
+    <div class="game-ui">
+        <div class="player-controls container">
+            <div class="player-controls-top">
+                <div class="fire-param-cont aim-container">
+                    <h3 class="unselectable">AIM</h3>
+                    <div class="param-button aim-button">
+                        <p class="unselectable fire-param aim">0˚</p>
+                    </div>
+                </div>
+                <div class="fire-param-cont power-container">
+                    <h3 class="unselectable">POWER</h3>
+                    <div class="param-button power-button">
+                        <p class="unselectable fire-param power">50</p>
+                    </div>
+                </div>
+                <div class="ui-mid-container">
+                    <div class="shot-btn-container unselectable">
+                        <div class="shot-selection">
+                            <div class="shot-option">ANTI-GRAVITY SHOT</div>
+                            <div class="shot-option">NO-GRAVITY SHOT</div>
+                            <div class="shot-option">NORMAL SHOT</div>
+                        </div>
+                        <button type="button" class="shot-button">NORMAL SHOT</button>
+                    </div>
+                    <div class="fire-move-container">
+                        <div class="f-m-btn-container unselectable">
+                            <button type="button" class="f-m-button fire-button">FIRE</button>
+                        </div>
+                        <div class="f-m-btn-container unselectable">
+                            <button type="button" class="f-m-button move-button">MOVE</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="fire-param-cont power-container">
-                <h3 class="unselectable">POWER</h3>
-                <div class="param-button power-button">
-                    <p class="unselectable fire-param power">50</p>
-                </div>
-            </div>
-            <div class="ui-mid-container">
-                <div class="shot-btn-container unselectable">
-                    <div class="shot-selection">
-                        <div class="shot-option">ANTI-GRAVITY SHOT</div>
-                        <div class="shot-option">NO-GRAVITY SHOT</div>
-                        <div class="shot-option">NORMAL SHOT</div>
-                    </div>
-                    <button type="button" class="shot-button">NORMAL SHOT</button>
-                </div>
-                <div class="fire-move-container">
-                    <div class="f-m-btn-container unselectable">
-                        <button type="button" class="f-m-button fire-button">FIRE</button>
-                    </div>
-                    <div class="f-m-btn-container unselectable">
-                        <button type="button" class="f-m-button move-button">MOVE</button>
-                    </div>
-                </div>
+            <div class="player-controls-bot">
+                <div class="action-point available"></div>
+                <div class="action-point available"></div>
+                <div class="action-point available"></div>
+                <div class="action-point available"></div>
+                <div class="action-point available"></div>
+                <div class="action-point available"></div>
+                <div class="action-point available"></div>
+                <div class="action-point available"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
+                <div class="action-point"></div>
             </div>
         </div>
-        <div class="game-ui-bot">
-            <div class="action-point available"></div>
-            <div class="action-point available"></div>
-            <div class="action-point available"></div>
-            <div class="action-point available"></div>
-            <div class="action-point available"></div>
-            <div class="action-point available"></div>
-            <div class="action-point available"></div>
-            <div class="action-point available"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
-            <div class="action-point"></div>
+        <div class="end-turn container">
+            <button type="button" class="end-button">END TURN</button>
         </div>
     </div>
 </section>
