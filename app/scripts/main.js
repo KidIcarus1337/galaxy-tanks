@@ -206,13 +206,13 @@ $(function() {
     var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
     var p1_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8});
+    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8, aim: 0, power: 50});
 
     var p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
     var p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
     var p2_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
         {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8});
+    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8, aim: 0, power: 50});
 
     // Shots
     var Shot = fabric.util.createClass(fabric.Circle, {
@@ -673,21 +673,6 @@ $(function() {
         }
     }
 
-    $(".fire-button").on('click', function() {
-        selected_shot = $(".shot-button").text();
-        fire(selected_shot, current_player);
-    });
-    $(".aim-button").on("click", function() {
-        setAim(current_player);
-    });
-    $(".power-button").on("click", setPower);
-    $(".shot-button").on("click", selectShot);
-    $(".move-button").on("click", function(e) {
-        setMove(e, current_player)
-    });
-
-    paramHover();
-
     function spendAP(player, pnts_to_be_rmvd) {
         player.set({actionPoints: player.actionPoints - pnts_to_be_rmvd});
         var n = 1;
@@ -702,33 +687,59 @@ $(function() {
     }
 
     function assessAP(player) {
-        var move_button = $(".move-button"), fire_button = $(".fire-button");
-        if (player.actionPoints == 0) {
-            if (move_button.hasClass("button-disabled") == false) {
-                move_button.toggleClass("button-disabled");
-            }
-        } else if (move_button.hasClass("button-disabled") == true) {
-            move_button.toggleClass("button-disabled");
-        }
-        if (player.actionPoints < 3) {
+        var ap = player.actionPoints, n = 1;
+        console.log(ap);
+        var fire_button = $(".fire-button");
+        if (ap == 0) {
+            endTurn();
+            return;
+        } else if (ap < 3) {
             if (fire_button.hasClass("button-disabled") == false) {
                 fire_button.toggleClass("button-disabled");
             }
         } else if (fire_button.hasClass("button-disabled") == true) {
             fire_button.toggleClass("button-disabled");
         }
+        $($(".action-point").get()).each(function() {
+            $(this).removeClass("available to-be-removed");
+            if (n <= ap) {
+                $(this).addClass("available");
+                n++;
+            }
+        });
     }
 
     var current_player = player_1;
 
-    function endTurn(current_player) {
+    function endTurn() {
         if (current_player == player_1) {
             current_player = player_2;
-            current_player.set({actionPoints: 8});
-            $(".aim").text(current_player.aim + "˚");
-            $(".power").text(current_player.power);
+        } else {
+            current_player = player_1;
         }
+        current_player.set({actionPoints: 8});
+        $(".aim").text(current_player.aim + "˚");
+        $(".power").text(current_player.power);
+        assessAP(current_player);
     }
+
+    $(".fire-button").on('click', function() {
+        selected_shot = $(".shot-button").text();
+        fire(selected_shot, current_player);
+    });
+    $(".aim-button").on("click", function() {
+        setAim(current_player);
+    });
+    $(".power-button").on("click", setPower);
+    $(".shot-button").on("click", selectShot);
+    $(".move-button").on("click", function(e) {
+        setMove(e, current_player)
+    });
+    $(".end-button").on("click", function() {
+        endTurn()
+    });
+
+    paramHover();
 
     modeChange(tearTitle, buildGame);
     animateLoop();

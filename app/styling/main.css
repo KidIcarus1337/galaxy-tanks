@@ -206,15 +206,11 @@ button:focus {
     cursor: default;
 }
 
-.end-turn {
+.end-turn-cont {
     width: 150px;
     position: absolute;
-    right: 100px;
-    bottom: 100px;
-}
-
-.end-button {
-
+    top: 40%;
+    left: 100%;
 }
 
 /* MEDIA QUERIES
