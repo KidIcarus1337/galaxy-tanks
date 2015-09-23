@@ -465,7 +465,7 @@ $(function() {
         $(".aim-button").on("click", setAim).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
         $(".fire-button").on('click', function() {
             selected_shot = $(".shot-button").text();
-            fire(selected_shot);
+            fire(selected_shot, current_player);
         });
     }
 
@@ -527,7 +527,7 @@ $(function() {
         $(".power-button").on("click", setPower).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
         $(".fire-button").on('click', function() {
             selected_shot = $(".shot-button").text();
-            fire(selected_shot);
+            fire(selected_shot, current_player);
         });
     }
 
@@ -610,7 +610,7 @@ $(function() {
                 var n = 0;
                 $(".to-be-removed").removeClass("to-be-removed").addClass("available");
                 $($(".available").get().reverse()).each(function() {
-                    if (n < (distance / 50)) {
+                    if (n < ((distance) / 50)) {
                         $(this).removeClass("available").addClass("to-be-removed");
                         n++;
                         pnts_to_be_rmvd = n;
@@ -630,9 +630,9 @@ $(function() {
                 canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
                 $(".game-ui").off();
                 $(".move-button").off().on("click", function(e) {
-                    setMove(e, current_player)
+                    setMove(e, current_player);
                 });
-                $(window).off("keydown", cancelMove).on("keydown", moveListener)
+                $(window).off("keydown", cancelMove).on("keydown", moveListener);
             }
             function activateSetMove(player) {
                 unbindSetMove();
@@ -640,7 +640,7 @@ $(function() {
                 phantom_p1.item(2).set("opacity", 0.5);
                 canvas.add(p1_move_limit);
                 p1_move_limit.moveTo(canvas.getObjects().indexOf(player_1));
-                p1_move_limit.animate("radius", (player.actionPoints * 50) - player_1.radius + 1, {
+                p1_move_limit.animate("radius", 50 + (player.actionPoints * 50) - player_1.radius, {
                     duration: 300
                 });
             }
