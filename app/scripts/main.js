@@ -41,8 +41,10 @@ $(function() {
     }
 
     function buildGame() {
+        gameMap1();
         $(".game-screen").delay(500).fadeIn(500, function() {
             $(window).on("keydown", moveListener);
+            $(window).on("keydown", fireListener);
         });
     }
 
@@ -98,7 +100,8 @@ $(function() {
     var GAME_TIME_UNIT = (60 / FRAME_RATE) * GAME_SPEED;
 
     var current_angle = function() {
-        return Number($(".aim").text().substring(0, $(".aim").text().length - 1))
+        var $aim = $(".aim");
+        return Number($aim.text().substring(0, $aim.text().length - 1))
     };
     var angle = current_angle();
     var power;
@@ -202,17 +205,37 @@ $(function() {
             return TURRET_LENGTH * (Math.sin(DEGREE_IN_RADIANS * angle));
         };
 
-    var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
-    var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
-    var p1_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
-        {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8, aim: 0, power: 50});
+    var p1_perimeter, p1_body, p1_turret, player_1, p2_perimeter, p2_body, p2_turret, player_2;
 
-    var p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
-    var p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
-    var p2_turret = new playerTurret([0, 0, turret_cos(current_angle()), turret_sin(current_angle())],
-        {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 8, aim: 0, power: 50});
+    function gameMap1() {
+        p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
+        p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
+        p1_turret = new playerTurret([0, 0, turret_cos(0), turret_sin(0)],
+            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
+        player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 0, aim: 0, power: 50, health: 3});
+
+        p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
+        p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
+        p2_turret = new playerTurret([0, 0, turret_cos(180), turret_sin(180)],
+            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
+        player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 0, aim: 180, power: 50, health: 3});
+    }
+
+    var player_indicator = new fabric.Triangle({width: 10, height: 6, fill: "#fff", top: -35, angle: 180, selectable: false, originX: "center", originY: "center"});
+    function indicatorHover() {
+        player_indicator.animate("top", -30, {
+            duration: 400,
+            onComplete: function() {
+                player_indicator.animate("top", -40, {
+                    duration: 400,
+                    onComplete: function() {
+                        indicatorHover();
+                    }
+                });
+            }
+        });
+    }
+    indicatorHover();
 
     // Shots
     var Shot = fabric.util.createClass(fabric.Circle, {
@@ -334,7 +357,6 @@ $(function() {
 
     var objects_to_remove = [];
 
-    var damage = 0;
     function checkCollision(object) {
         var other_objects = $.grep(objects_in_universe, function(o, i) {
             return o != object;
@@ -346,9 +368,9 @@ $(function() {
                 if (object.type == "Shot") {
                     objects_to_remove.push(object);
                     if (opposing_obj.type == "Player") {
-                        damage += 1;
-                        if (damage == 3) {
-                            alert("GG It's like coffeezilla!")
+                        opposing_obj.set({health: opposing_obj.health - 1});
+                        if (opposing_obj.health <= 0) {
+                            endGame(opposing_obj);
                         }
                     }
                 }
@@ -375,8 +397,10 @@ $(function() {
         setTimeout(animateLoop, 1000 / FRAME_RATE);
     }
 
+    var allow_fire = true;
+
     function fire(selected_shot, player) {
-        if (player.actionPoints >= 3) {
+        if (player.actionPoints >= 3 && allow_fire) {
             addShot(selected_shot, player);
             shot.set({left: shot.left - shot.radius, top: shot.top - shot.radius});
             canvas.add(shot);
@@ -389,81 +413,97 @@ $(function() {
         }
     }
 
+    function fireListener(e) {
+        var key = e.keyCode || e.charCode;
+        if (key == 32) {
+            selected_shot = $(".shot-button").text();
+            fire(selected_shot, current_player);
+        }
+    }
+
     // GAME UI
     // ----------------------------------------------------------------------------------------------------------
     // ----------------------------------------------------------------------------------------------------------
     function paramHover() {
         $(".param-button").hover(function() {
+            if (allow_param) {
+                $(this).stop().animate({backgroundColor: "#414141"}, 150)
+            }
             $(this).stop().animate({backgroundColor: "#414141"}, 150)
         }, function() {
-            $(this).stop().animate({backgroundColor: "#1f1f1f"}, 150)
+            if (allow_param) {
+                $(this).stop().animate({backgroundColor: "#1f1f1f"}, 150)
+            }
         });
     }
+    var allow_param = true;
 
-    var aimKeyPress;
-    var aimWheel;
+    var aimChange;
 
     function setAim(player) {
-        var $aim = $(".aim");
-        $aim.stop().animate({"font-size": 30}, 200);
-        $(".aim-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
-        setTimeout(function() {
-            $(window).on("click", confirmAim).on("keydown", function(e) {
-                var key = e.keyCode || e.charCode;
-                if (key == 13) {
-                    confirmAim();
-                }
-            });
-        }, 50);
-        var keyPressed = false;
-        aimKeyPress = function(e) {
-            var key = e.keyCode || e.charCode;
-            var aim;
-            if ((key >= 48 || key >= 48) && (key <= 57 || key <= 48)) {
-                if (keyPressed == false) {
-                    aim = 0;
-                    keyPressed = true;
-                } else {
-                    aim = current_angle();
-                }
-                if (((aim * 10) + (key - 48)) <= 360) {
-                    $aim.text((aim * 10) + (key - 48) + "˚");
-                } else {
-                    $aim.text("360˚");
-                }
-            } else if (key == 38) {
+        if (allow_param) {
+            var $aim = $(".aim"), aim, keyPressed = false;
+            $aim.stop().animate({"font-size": 30}, 200);
+            $(".aim-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
+            setTimeout(function() {
+                $(window).on("click", confirmAim).on("keydown", function(e) {
+                    var key = e.keyCode || e.charCode;
+                    if (key == 13) {
+                        confirmAim();
+                    }
+                });
+            }, 50);
+
+            aimChange = function(event) {
                 aim = current_angle();
-                $aim.text(aim + 1  + "˚");
-            } else if (key == 40) {
-                aim = current_angle();
-                $aim.text(aim - 1  + "˚");
-            }
-            player.item(2).set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
-        };
-        aimWheel = function(event) {
-            var aim = current_angle();
-            if (event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) {
-                $aim.text(((aim + 1) % 360) + "˚");
-            }
-            else {
-                if (aim - 1 < 0) {
-                    aim = 359;
+                if (event.type == "mousewheel" || event.type == "DOMMouseScroll") {
+                    if (event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) {
+                        $aim.text(((aim + 1) % 360) + "˚");
+                    }
+                    else {
+                        if (aim - 1 < 0) {
+                            aim = 360;
+                        }
+                        $aim.text(((aim - 1) % 360)  + "˚");
+                    }
+                    player.item(2).set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
+                    keyPressed = false;
+                } else {
+                    var key = event.keyCode || event.charCode;
+                    if ((key >= 48 || key >= 48) && (key <= 57 || key <= 48)) {
+                        if (keyPressed == false) {
+                            aim = 0;
+                            keyPressed = true;
+                        } else {
+                            aim = current_angle();
+                        }
+                        if (((aim * 10) + (key - 48)) <= 360) {
+                            $aim.text((aim * 10) + (key - 48) + "˚");
+                        } else {
+                            $aim.text("360˚");
+                        }
+                    } else if (key == 38) {
+                        $aim.text(((aim + 1) % 360) + "˚");
+                    } else if (key == 40) {
+                        if (aim - 1 < 0) {
+                            aim = 360;
+                        }
+                        $aim.text(((aim - 1) % 360)  + "˚");
+                    }
+                    player.item(2).set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
                 }
-                $aim.text(((aim - 1) % 360)  + "˚");
-            }
-            player.item(2).set({x2: turret_cos(current_angle()), y2: turret_sin(current_angle())});
-            keyPressed = false;
-        };
-        $(".fire-button").off();
-        $(window)
-            .on('mousewheel DOMMouseScroll', aimWheel)
-            .on("keydown", aimKeyPress);
+            };
+            allow_fire = false;
+            allow_end = false;
+            $(".fire-button").off();
+            $(window).on("mousewheel DOMMouseScroll keydown", aimChange);
+        }
     }
 
     function confirmAim() {
         var $aim = $(".aim");
         $aim.stop().animate({"font-size": 14}, 200);
-        $(window).off("click", confirmAim).off("mousewheel DOMMouseScroll", aimWheel).off("keydown", aimKeyPress);
+        $(window).off("click", confirmAim).off("mousewheel DOMMouseScroll keydown", aimChange);
         $(".aim-button").on("click", function()
             {setAim(current_player);
         }).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
@@ -471,73 +511,77 @@ $(function() {
             selected_shot = $(".shot-button").text();
             fire(selected_shot, current_player);
         });
-        current_player.set({aim: $aim.text()})
+        current_player.set({aim: current_angle()});
+        allow_fire = true;
+        allow_end = true;
     }
 
-    var powerKeyPress;
-    var powerWheel;
+    var powerChange;
 
     function setPower() {
-        var $power = $(".power");
-        $power.stop().animate({"font-size": 30}, 200);
-        $(".power-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
-        setTimeout(function() {
-            $(window).on("click", confirmPower).on("keydown", function(e) {
-                var key = e.keyCode || e.charCode;
-                if (key == 13) {
-                    confirmPower();
-                }
-            });
-        }, 50);
-        var keyPressed = false;
-        powerKeyPress = function(e) {
-            var key = e.keyCode || e.charCode;
-            var power;
-            if ((key >= 48 || key >= 48) && (key <= 57 || key <= 48)) {
-                if (keyPressed == false) {
-                    power = 0;
-                    keyPressed = true;
+        if (allow_param) {
+            var $power = $(".power"), power, keyPressed = false;
+            $power.stop().animate({"font-size": 30}, 200);
+            $(".power-button").animate({"width": 100, backgroundColor: "#414141"}, 200).off();
+            setTimeout(function() {
+                $(window).on("click", confirmPower).on("keydown", function(e) {
+                    var key = e.keyCode || e.charCode;
+                    if (key == 13) {
+                        confirmPower();
+                    }
+                });
+            }, 50);
+            powerChange = function(event) {
+                power = Number($power.text());
+                if (event.type == "mousewheel" || event.type == "DOMMouseScroll") {
+                    if ((event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) && (power + 1) <= 100) {
+                        $power.text(power + 1);
+                    } else if (power > 1) {
+                        $power.text(power - 1);
+                    }
+                    keyPressed = false;
                 } else {
-                    power = Number($(".power").text());
+                    var key = event.keyCode || event.charCode;
+                    if ((key >= 48 || key >= 48) && (key <= 57 || key <= 48)) {
+                        if (keyPressed == false) {
+                            power = 0;
+                            keyPressed = true;
+                        } else {
+                            power = Number($(".power").text());
+                        }
+                        if (((power * 10) + (key - 48)) <= 100) {
+                            $(".power").text((power * 10) + (key - 48));
+                        }
+                    } else if (key == 38) {
+                        if (power < 100) {
+                            $power.text(power + 1);
+                        }
+                    } else if (key == 40) {
+                        if (power > 1) {
+                            $power.text(power - 1);
+                        }
+                    }
                 }
-                if (((power * 10) + (key - 48)) <= 100) {
-                    $(".power").text((power * 10) + (key - 48));
-                }
-            } else if (key == 38) {
-                power = Number($power.text());
-                $power.text(power + 1);
-            } else if (key == 40) {
-                power = Number($power.text());
-                $power.text(power - 1);
-            }
-        };
-        powerWheel = function(event) {
-            var power = Number($power.text());
-            if ((event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) && (power + 1) <= 100) {
-                $power.text(power + 1);
-            }
-            else if ((power + 1) >= 3) {
-                $power.text(power - 1);
-            }
-            keyPressed = false;
-        };
-        $(".fire-button").off();
-        $(window)
-            .on('mousewheel DOMMouseScroll', powerWheel)
-            .on("keydown", powerKeyPress)
+            };
+            allow_fire = false;
+            allow_end = false;
+            $(".fire-button").off();
+            $(window).on("mousewheel DOMMouseScroll keydown", powerChange);
+        }
     }
 
     function confirmPower() {
         var $power = $(".power");
         $power.stop().animate({"font-size": 14}, 200);
-        $(window).off("click", confirmPower).off("mousewheel DOMMouseScroll", powerWheel).off("keydown", powerKeyPress);
+        $(window).off("click", confirmPower).off("mousewheel DOMMouseScroll keydown", powerChange);
         $(".power-button").on("click", setPower).stop().animate({"width": 35, backgroundColor: "#1f1f1f"}, 150, paramHover);
         $(".fire-button").on('click', function() {
             selected_shot = $(".shot-button").text();
             fire(selected_shot, current_player);
         });
-        current_player.set({power: $power.text()})
-
+        current_player.set({power: $power.text()});
+        allow_fire = true;
+        allow_end = true;
     }
 
     function selectShot() {
@@ -555,9 +599,10 @@ $(function() {
         });
     }
 
-    function setMove(e, player) {
+    function setMove(player) {
         if (player.actionPoints > 0) {
-            var move_limit = new fabric.Circle({radius: p1_body.radius, left: player.realX(), top: player.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
+            var player_body = player.item(1);
+            var move_limit = new fabric.Circle({radius: player_body.radius, left: player.realX(), top: player.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
             var move_phantom = new fabric.Group([
                 fabric.util.object.clone(player.item(0)),
                 fabric.util.object.clone(player.item(1)),
@@ -565,7 +610,7 @@ $(function() {
             var pnts_to_be_rmvd = 0;
 
             function removeMoveLimit() {
-                move_limit.animate("radius", p1_body.radius, {
+                move_limit.animate("radius", player_body.radius, {
                     duration: 300,
                     onComplete: function () {
                         canvas.remove(move_limit);
@@ -578,29 +623,26 @@ $(function() {
             }
             function confirmMove() {
                 removeMoveLimit();
-                player.animate("left", move_phantom.left);
-                player.animate("top", move_phantom.top);
-                spendAP(player, pnts_to_be_rmvd);
+                player.set({left: move_phantom.left, top: move_phantom.top});
                 rebindSetMove();
+                spendAP(player, pnts_to_be_rmvd);
             }
             function cancelMove(e) {
-                var to_be_removed = $(".to-be-removed");
-                if (e.type == "keydown") {
-                    if (e) {
-                        var key = e.keyCode || e.charCode;
-                        if (key == 27 || key == 77) {
-                            to_be_removed.removeClass("to-be-removed").addClass("available");
-                            removeMoveLimit();
-                            rebindSetMove();
-                            return;
-                        } else {
-                            return;
-                        }
-                    }
+                function confirmCancel() {
+                    $to_be_removed.removeClass("to-be-removed").addClass("available");
+                    removeMoveLimit();
+                    rebindSetMove();
+                    assessAP(player);
                 }
-                to_be_removed.removeClass("to-be-removed").addClass("available");
-                removeMoveLimit();
-                rebindSetMove();
+                var $to_be_removed = $(".to-be-removed");
+                if (e.type == "keydown") {
+                    var key = e.keyCode || e.charCode;
+                    if (key == 27 || key == 77) {
+                        confirmCancel();
+                    }
+                } else {
+                    confirmCancel();
+                }
             }
             function setMoveCursor(options) {
                 if ($.inArray(move_phantom, canvas.getObjects()) == -1) {
@@ -608,11 +650,11 @@ $(function() {
                 }
                 var dx = (options.e.clientX - move_limit.left), dy = (options.e.clientY - move_limit.top);
                 var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-                if (distance + p1_body.radius <= move_limit.radius) {
+                if (distance + player_body.radius <= move_limit.radius) {
                     move_phantom.set({left: options.e.clientX - move_phantom.radius, top: options.e.clientY - move_phantom.radius});
                 } else {
                     var cursor_angle = Math.atan2(dy, dx);
-                    var x = ((move_limit.radius - p1_body.radius) * Math.cos(cursor_angle)) + move_limit.left - move_phantom.radius, y = ((move_limit.radius - p1_body.radius) * Math.sin(cursor_angle)) + move_limit.top - move_phantom.radius;
+                    var x = ((move_limit.radius - player_body.radius) * Math.cos(cursor_angle)) + move_limit.left - move_phantom.radius, y = ((move_limit.radius - player_body.radius) * Math.sin(cursor_angle)) + move_limit.top - move_phantom.radius;
                     move_phantom.set({left: x, top: y});
                 }
                 distance = distanceBetween(move_phantom, player);
@@ -626,7 +668,23 @@ $(function() {
                     }
                 });
             }
-            function unbindSetMove() {
+            function rebindSetMove() {
+                allow_fire = true;
+                allow_param = true;
+                allow_end = true;
+                $(".fire-button").removeClass("button-disabled");
+                canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
+                $(".game-ui").off();
+                $(".move-button").off().on("click", function() {
+                    setMove(current_player);
+                });
+                $(window).off("keydown", cancelMove).on("keydown", moveListener);
+            }
+            function activateSetMove(player) {
+                allow_fire = false;
+                allow_param = false;
+                allow_end = false;
+                $(".fire-button").addClass("button-disabled");
                 canvas.on("mouse:down", confirmMove).on("mouse:move", setMoveCursor);
                 $(".game-ui").on("mousemove", function() {
                     canvas.remove(move_phantom);
@@ -634,17 +692,6 @@ $(function() {
                 });
                 $(".move-button").off().on("click", cancelMove);
                 $(window).off("keydown", moveListener).on("keydown", cancelMove);
-            }
-            function rebindSetMove() {
-                canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
-                $(".game-ui").off();
-                $(".move-button").off().on("click", function(e) {
-                    setMove(e, current_player);
-                });
-                $(window).off("keydown", cancelMove).on("keydown", moveListener);
-            }
-            function activateSetMove(player) {
-                unbindSetMove();
                 move_phantom.item(1).set("opacity", 0.5);
                 move_phantom.item(2).set("opacity", 0.5);
                 canvas.add(move_limit);
@@ -653,15 +700,6 @@ $(function() {
                     duration: 300
                 });
             }
-            if (e.type == "keydown") {
-                var key = e.keyCode || e.charCode;
-                if (key == 77) {
-                    activateSetMove(player);
-                    return;
-                } else {
-                    return;
-                }
-            }
             activateSetMove(player);
         }
     }
@@ -669,7 +707,7 @@ $(function() {
     function moveListener(e) {
         var key = e.keyCode || e.charCode;
         if (key == 77) {
-            setMove(e, current_player);
+            setMove(current_player);
         }
     }
 
@@ -688,7 +726,6 @@ $(function() {
 
     function assessAP(player) {
         var ap = player.actionPoints, n = 1;
-        console.log(ap);
         var fire_button = $(".fire-button");
         if (ap == 0) {
             endTurn();
@@ -709,18 +746,46 @@ $(function() {
         });
     }
 
-    var current_player = player_1;
+    var first_player = Math.floor((Math.random() * 2) + 1), current_player;
+    if (first_player == 1) {
+        current_player = player_1;
+    } else {
+        current_player = player_2;
+    }
+    current_player.set({actionPoints: 8});
+    current_player.add(player_indicator);
+    $(".aim").text(current_player.aim + "˚");
+    $(".power").text(current_player.power);
+
+    var allow_end = true;
 
     function endTurn() {
-        if (current_player == player_1) {
-            current_player = player_2;
-        } else {
-            current_player = player_1;
+        if (allow_end) {
+            current_player.remove(player_indicator);
+            if (current_player == player_1) {
+                current_player = player_2;
+            } else {
+                current_player = player_1;
+            }
+            if (current_player.actionPoints + 8 <= 20) {
+                current_player.set({actionPoints: current_player.actionPoints + 8});
+            } else {
+                current_player.set({actionPoints: 20});
+            }
+            $(".aim").text(current_player.aim + "˚");
+            $(".power").text(current_player.power);
+            assessAP(current_player);
+            current_player.add(player_indicator);
         }
-        current_player.set({actionPoints: 8});
-        $(".aim").text(current_player.aim + "˚");
-        $(".power").text(current_player.power);
-        assessAP(current_player);
+    }
+
+    function endGame(loser) {
+        if (loser == player_1) {
+            $(".winner").text("Player 2 wins!")
+        } else {
+            $(".winner").text("Player 1 wins!")
+        }
+        $(".game-over").css({display: "block"});
     }
 
     $(".fire-button").on('click', function() {
@@ -732,11 +797,17 @@ $(function() {
     });
     $(".power-button").on("click", setPower);
     $(".shot-button").on("click", selectShot);
-    $(".move-button").on("click", function(e) {
-        setMove(e, current_player)
+    $(".move-button").on("click", function() {
+        setMove(current_player)
     });
     $(".end-button").on("click", function() {
-        endTurn()
+        endTurn();
+    });
+    $(".back-title-btn").on("click", function() {
+        modeChange(tearGame, buildTitle);
+    });
+    $(".play-again-btn").on("click", function() {
+        modeChange(tearGame, buildGame);
     });
 
     paramHover();

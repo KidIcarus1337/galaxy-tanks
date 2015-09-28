@@ -43,7 +43,7 @@ body {
     border-bottom: 1px solid #5f5f5f;
 }
 
-.menu-button, .fire-button, .move-button, .shot-button, .shot-option, .end-button {
+.menu-button, .fire-button, .move-button, .shot-button, .shot-option, .end-button, .play-again-btn, .back-title-btn {
     background-color: black;
     border: 1px solid #fff;
     border-radius: 2px;
@@ -72,7 +72,8 @@ button:focus {
     border-top: 1px solid #fff;
     border-left: 1px solid #fff;
     border-right: 1px solid #fff;
-    border-radius: 2px;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
     background-color: #1f1f1f;
 }
 
@@ -137,7 +138,7 @@ button:focus {
     bottom: -30px;
 }
 
-.shot-option, .shot-button, .fire-button, .move-button, .end-button {
+.shot-option, .shot-button, .fire-button, .move-button, .end-button, .play-again-btn, .back-title-btn {
     width: 100%;
     color: #fff;
 }
@@ -157,7 +158,7 @@ button:focus {
     float: right;
 }
 
-.fire-button, .move-button, .end-button {
+.fire-button, .move-button, .end-button, .play-again-btn, .back-title-btn {
     height: 35px;
 }
 
@@ -211,6 +212,45 @@ button:focus {
     position: absolute;
     top: 40%;
     left: 100%;
+}
+
+.game-over {
+    width: 26%;
+    border: 1px solid #fff;
+    border-radius: 2px;
+    padding: 0 20px 15px;
+    background-color: #1f1f1f;
+    position: absolute;
+    display: block;
+    left: 0;
+    right: 0;
+    top: 40%;
+    color: #fff;
+}
+
+.game-over h1, .winner {
+    text-align: center;
+}
+
+.winner {
+    margin-bottom: 30px;
+}
+
+.game-over-btns {
+    width: 80%;
+    margin: 0 auto;
+}
+
+.play-again-cont, .back-title-cont {
+    width: 35%;
+}
+
+.play-again-cont {
+    float: left;
+}
+
+.back-title-cont {
+    float: right;
 }
 
 /* MEDIA QUERIES
