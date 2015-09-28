@@ -93,6 +93,19 @@ $(function() {
     }
     resizeCanvas();
 
+    fabric.Canvas.prototype.getElementsByType = function(type) {
+        var objectList = [],
+            objects = this.getObjects();
+
+        for (var i = 0, len = this.size(); i < len; i++) {
+            if (objects[i].type && objects[i].type === type) {
+                objectList.push(objects[i]);
+            }
+        }
+
+        return objectList;
+    };
+
     // Physics
     // ----------------------------------------------------------------------------------------------------------
     var FRAME_RATE = 120;
@@ -205,9 +218,18 @@ $(function() {
             return TURRET_LENGTH * (Math.sin(DEGREE_IN_RADIANS * angle));
         };
 
-    var p1_perimeter, p1_body, p1_turret, player_1, p2_perimeter, p2_body, p2_turret, player_2;
+    var p1_perimeter, p1_body, p1_turret, player_1, p2_perimeter, p2_body, p2_turret, player_2, objects_in_universe;
 
     function gameMap1() {
+        for (e in canvas.getElementsByType("Planet")) {
+            canvas.dispose(e);
+        }
+        for (e in canvas.getElementsByType("Player")) {
+            canvas.dispose(e);
+        }
+        for (e in canvas.getElementsByType("Shot")) {
+            canvas.dispose(e);
+        }
         p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
         p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
         p1_turret = new playerTurret([0, 0, turret_cos(0), turret_sin(0)],
@@ -219,6 +241,18 @@ $(function() {
         p2_turret = new playerTurret([0, 0, turret_cos(180), turret_sin(180)],
             {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
         player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 0, aim: 180, power: 50, health: 3});
+
+        canvas.add(test_planet, player_1, player_2);
+        objects_in_universe = [test_planet, player_1, player_2];
+        if (first_player == 1) {
+            current_player = player_1;
+        } else {
+            current_player = player_2;
+        }
+        current_player.set({actionPoints: 8});
+        current_player.add(player_indicator);
+        $(".aim").text(current_player.aim + "˚");
+        $(".power").text(current_player.power);
     }
 
     var player_indicator = new fabric.Triangle({width: 10, height: 6, fill: "#fff", top: -35, angle: 180, selectable: false, originX: "center", originY: "center"});
@@ -331,9 +365,6 @@ $(function() {
 
 
     // Object interactions and relations
-    canvas.add(test_planet, player_1, player_2);
-    var objects_in_universe = [test_planet, player_1, player_2];
-
     function distanceBetween(object1, object2) {
         var dx = (object1.realX()) - (object2.realX()), dy = (object1.realY()) - (object2.realY());
         return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
@@ -747,15 +778,6 @@ $(function() {
     }
 
     var first_player = Math.floor((Math.random() * 2) + 1), current_player;
-    if (first_player == 1) {
-        current_player = player_1;
-    } else {
-        current_player = player_2;
-    }
-    current_player.set({actionPoints: 8});
-    current_player.add(player_indicator);
-    $(".aim").text(current_player.aim + "˚");
-    $(".power").text(current_player.power);
 
     var allow_end = true;
 
@@ -781,9 +803,9 @@ $(function() {
 
     function endGame(loser) {
         if (loser == player_1) {
-            $(".winner").text("Player 2 wins!")
+            $(".winner").text("Player 2 wins!");
         } else {
-            $(".winner").text("Player 1 wins!")
+            $(".winner").text("Player 1 wins!");
         }
         $(".game-over").css({display: "block"});
     }
@@ -798,7 +820,7 @@ $(function() {
     $(".power-button").on("click", setPower);
     $(".shot-button").on("click", selectShot);
     $(".move-button").on("click", function() {
-        setMove(current_player)
+        setMove(current_player);
     });
     $(".end-button").on("click", function() {
         endTurn();
