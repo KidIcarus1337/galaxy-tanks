@@ -62,8 +62,37 @@ button:focus {
 /* GAME UI
 --------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------- */
+.top-ui-bar {
+    width: 100%;
+    padding: 0 15px;
+    position: fixed;
+    top: 0;
+}
+
+.p1-info {
+    float: left;
+    color: blue;
+    text-align: left;
+}
+
+.p2-info {
+    float: right;
+    color: red;
+    text-align: right;
+}
+
+#p1-health, #p2-health {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    width: 200px;
+    border: 2px solid #aaaaaa;
+    border-radius: 1px;
+    color: #0ddf00;
+}
+
 .player-controls {
-    position: absolute;
+    position: fixed;
     width: 760px;
     left: 0;
     right: 0;
@@ -220,8 +249,8 @@ button:focus {
     border-radius: 2px;
     padding: 0 20px 15px;
     background-color: #1f1f1f;
-    position: absolute;
-    display: block;
+    position: fixed;
+    display: none;
     left: 0;
     right: 0;
     top: 40%;

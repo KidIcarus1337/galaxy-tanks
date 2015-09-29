@@ -5,26 +5,27 @@ $(function() {
     // ----------------------------------------------------------------------------------------------------------
     function modeChange(tearMode, buildMode) {
         $(window, "*").off();
-        tearMode();
-        buildMode();
+        tearMode(buildMode);
     }
 
     function buildTitle() {
-        $(".title-screen").delay(500).fadeIn(500, function() {
+        $(".title-screen").fadeIn(500, function() {
             $(window).on("keydown click", titlePress);
         });
         stop_loop = false;
         titleTextLoop();
     }
 
-    function tearTitle() {
-        $(".title-screen").fadeOut(500);
+    function tearTitle(callback) {
+        $(".title-screen").fadeOut(500, function() {
+            callback();
+        });
         stop_loop = true;
         title_text.stop(true, true);
     }
 
     function buildMenu() {
-        $(".menu-screen").delay(500).fadeIn(500, function() {
+        $(".menu-screen").fadeIn(500, function() {
             $(window).keyup(function(e) {
                 if (e.keyCode == 27) {
                     modeChange(tearMenu, buildTitle);
@@ -36,20 +37,24 @@ $(function() {
         });
     }
 
-    function tearMenu() {
-        $(".menu-screen").fadeOut(500);
+    function tearMenu(callback) {
+        $(".menu-screen").fadeOut(500, function() {
+            callback();
+        });
     }
 
     function buildGame() {
-        gameMap1();
-        $(".game-screen").delay(500).fadeIn(500, function() {
+        loadGameMap1();
+        $(".game-screen").fadeIn(500, function() {
             $(window).on("keydown", moveListener);
             $(window).on("keydown", fireListener);
         });
     }
 
-    function tearGame() {
-        $(".game-screen").fadeOut(500);
+    function tearGame(callback) {
+        $(".game-screen").fadeOut(500, function() {
+            callback();
+        });
     }
 
     // TITLE
@@ -83,15 +88,9 @@ $(function() {
     // ----------------------------------------------------------------------------------------------------------
     var canvas = new fabric.Canvas('canvas');
 
-    // Resize the canvas to fill browser window dynamically
-    window.addEventListener('resize', resizeCanvas, false);
-
-    function resizeCanvas() {
-        canvas.setHeight(window.innerHeight);
-        canvas.setWidth(window.innerWidth);
-        canvas.renderAll();
-    }
-    resizeCanvas();
+    canvas.setHeight(1000);
+    canvas.setWidth(2000);
+    canvas.renderAll();
 
     fabric.Canvas.prototype.getElementsByType = function(type) {
         var objectList = [],
@@ -218,32 +217,53 @@ $(function() {
             return TURRET_LENGTH * (Math.sin(DEGREE_IN_RADIANS * angle));
         };
 
-    var p1_perimeter, p1_body, p1_turret, player_1, p2_perimeter, p2_body, p2_turret, player_2, objects_in_universe;
+    var current_player;
 
-    function gameMap1() {
-        for (e in canvas.getElementsByType("Planet")) {
-            canvas.dispose(e);
+    function resetGame() {
+        $(".game-over").css({display: "none"});
+        var planets = canvas.getElementsByType("Planet");
+        var shots = canvas.getElementsByType("Shot");
+        for (var i = 0; i < planets.length; i++) {
+            canvas.remove(planets[i]);
+            objects_in_universe.splice($.inArray(planets[i], objects_in_universe), 1);
         }
-        for (e in canvas.getElementsByType("Player")) {
-            canvas.dispose(e);
+        for (var i = 0; i < shots.length; i++) {
+            canvas.remove(shots[i]);
+            objects_in_universe.splice($.inArray(shots[i], objects_in_universe), 1);
         }
-        for (e in canvas.getElementsByType("Shot")) {
-            canvas.dispose(e);
-        }
-        p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
-        p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
-        p1_turret = new playerTurret([0, 0, turret_cos(0), turret_sin(0)],
-            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-        player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, left: 500, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 0, aim: 0, power: 50, health: 3});
+        player_1.set({actionPoints: 0, aim: 0, power: 50});
+        player_2.set({actionPoints: 0, aim: 180, power: 50});
+        p1_turret.set({x2: turret_cos(0), y2: turret_sin(0)});
+        p2_turret.set({x2: turret_cos(180), y2: turret_sin(180)});
+    }
 
-        p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
-        p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
-        p2_turret = new playerTurret([0, 0, turret_cos(180), turret_sin(180)],
-            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-        player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, left: 1300, top: 400, selectable: false, velocityX: 0, velocityY: 0, mass: 0, actionPoints: 0, aim: 180, power: 50, health: 3});
+    function loadGameMap1() {
+        resetGame();
 
-        canvas.add(test_planet, player_1, player_2);
-        objects_in_universe = [test_planet, player_1, player_2];
+        player_1.set({left: 500, top: 400});
+        player_2.set({left: 1300, top: 400});
+
+        var planet_1 = new Planet({radius: 150, left: 800, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
+        planet_1.setGradient('fill', {
+            x1: 0,
+            y1: -planet_1.width / 2,
+            x2: 0,
+            y2: planet_1.width / 2,
+            colorStops: {
+                0: "green",
+                0.7: "green",
+                1: "blue"
+            }
+        });
+
+        canvas.add(planet_1);
+        objects_in_universe.push(planet_1);
+
+        if (current_player) {
+            current_player.remove(player_indicator);
+        }
+
+        var first_player = Math.floor((Math.random() * 2) + 1);
         if (first_player == 1) {
             current_player = player_1;
         } else {
@@ -253,7 +273,20 @@ $(function() {
         current_player.add(player_indicator);
         $(".aim").text(current_player.aim + "˚");
         $(".power").text(current_player.power);
+        assessAP(current_player);
     }
+
+    var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
+    var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
+    var p1_turret = new playerTurret([0, 0, turret_cos(0), turret_sin(0)],
+            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
+    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+
+    var p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
+    var p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
+    var p2_turret = new playerTurret([0, 0, turret_cos(180), turret_sin(180)],
+            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
+    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
 
     var player_indicator = new fabric.Triangle({width: 10, height: 6, fill: "#fff", top: -35, angle: 180, selectable: false, originX: "center", originY: "center"});
     function indicatorHover() {
@@ -319,13 +352,13 @@ $(function() {
     });
     var shotMap = {
         "NORMAL SHOT": function(player_turret) {
-            return new Shot({radius: 2, fill: 'yellow', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+            return new Shot({radius: 2, fill: 'yellow', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1, damage: 35})
         },
         "NO-GRAVITY SHOT": function(player_turret) {
-            return new noGravityShot({radius: 2, fill: 'red', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+            return new noGravityShot({radius: 2, fill: 'red', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1, damage: 20})
         },
         "ANTI-GRAVITY SHOT": function(player_turret) {
-            return new antiGravityShot({radius: 2, fill: 'green', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1})
+            return new antiGravityShot({radius: 2, fill: 'green', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1, damage:35})
         }
     };
     var shot;
@@ -348,23 +381,14 @@ $(function() {
             this.callSuper('_render', ctx);
         }
     });
-    var test_planet = new Planet({radius: 150, left: 800, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
-    test_planet.setGradient('fill', {
-        x1: 0,
-        y1: -test_planet.width / 2,
-        x2: 0,
-        y2: test_planet.width / 2,
-        colorStops: {
-            0: "green",
-            0.7: "green",
-            1: "blue"
-        }
-    });
 
     // Stars
 
 
     // Object interactions and relations
+    canvas.add(player_1, player_2);
+    var objects_in_universe = [player_1, player_2];
+
     function distanceBetween(object1, object2) {
         var dx = (object1.realX()) - (object2.realX()), dy = (object1.realY()) - (object2.realY());
         return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
@@ -374,12 +398,6 @@ $(function() {
         var g_forces = object.calculateGForce(objects_in_universe);
         object.velocityX = object.velocityX + (g_forces[0] * GAME_TIME_UNIT);
         object.velocityY = object.velocityY + (g_forces[1] * GAME_TIME_UNIT);
-        if (object.left + object.velocityX < 0 || object.left + object.velocityX > canvas.width - object.width) {
-            object.velocityX = -object.velocityX;
-        }
-        if (object.top + object.velocityY < 0 || object.top + object.velocityY > canvas.height - object.height) {
-            object.velocityY = -object.velocityY;
-        }
     }
 
     function updatePosition(object) {
@@ -399,8 +417,14 @@ $(function() {
                 if (object.type == "Shot") {
                     objects_to_remove.push(object);
                     if (opposing_obj.type == "Player") {
-                        opposing_obj.set({health: opposing_obj.health - 1});
-                        if (opposing_obj.health <= 0) {
+                        var health;
+                        if (opposing_obj == player_1) {
+                            health = document.getElementById("p1-health");
+                        } else {
+                            health = document.getElementById("p2-health");
+                        }
+                        health.value = health.value - object.damage;
+                        if (health.value <= 0) {
                             endGame(opposing_obj);
                         }
                     }
@@ -704,6 +728,7 @@ $(function() {
                 allow_param = true;
                 allow_end = true;
                 $(".fire-button").removeClass("button-disabled");
+                $(".end-button").removeClass("button-disabled");
                 canvas.off("mouse:down", confirmMove).off("mouse:move", setMoveCursor);
                 $(".game-ui").off();
                 $(".move-button").off().on("click", function() {
@@ -716,6 +741,7 @@ $(function() {
                 allow_param = false;
                 allow_end = false;
                 $(".fire-button").addClass("button-disabled");
+                $(".end-button").addClass("button-disabled");
                 canvas.on("mouse:down", confirmMove).on("mouse:move", setMoveCursor);
                 $(".game-ui").on("mousemove", function() {
                     canvas.remove(move_phantom);
@@ -776,8 +802,6 @@ $(function() {
             }
         });
     }
-
-    var first_player = Math.floor((Math.random() * 2) + 1), current_player;
 
     var allow_end = true;
 
