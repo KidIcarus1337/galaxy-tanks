@@ -86,10 +86,13 @@ $(function() {
     // CANVAS
     // ----------------------------------------------------------------------------------------------------------
     // ----------------------------------------------------------------------------------------------------------
-    var canvas = new fabric.Canvas('canvas');
+    var canvas = new fabric.Canvas('canvas', {
+        selection: false
+    });
 
     canvas.setHeight(1000);
     canvas.setWidth(2000);
+    canvas.allowTouchScrolling = true;
     canvas.renderAll();
 
     fabric.Canvas.prototype.getElementsByType = function(type) {
@@ -217,78 +220,19 @@ $(function() {
             return TURRET_LENGTH * (Math.sin(DEGREE_IN_RADIANS * angle));
         };
 
-    var current_player;
-
-    function resetGame() {
-        $(".game-over").css({display: "none"});
-        var planets = canvas.getElementsByType("Planet");
-        var shots = canvas.getElementsByType("Shot");
-        for (var i = 0; i < planets.length; i++) {
-            canvas.remove(planets[i]);
-            objects_in_universe.splice($.inArray(planets[i], objects_in_universe), 1);
-        }
-        for (var i = 0; i < shots.length; i++) {
-            canvas.remove(shots[i]);
-            objects_in_universe.splice($.inArray(shots[i], objects_in_universe), 1);
-        }
-        player_1.set({actionPoints: 0, aim: 0, power: 50});
-        player_2.set({actionPoints: 0, aim: 180, power: 50});
-        p1_turret.set({x2: turret_cos(0), y2: turret_sin(0)});
-        p2_turret.set({x2: turret_cos(180), y2: turret_sin(180)});
-    }
-
-    function loadGameMap1() {
-        resetGame();
-
-        player_1.set({left: 500, top: 400});
-        player_2.set({left: 1300, top: 400});
-
-        var planet_1 = new Planet({radius: 150, left: 800, top: 350, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
-        planet_1.setGradient('fill', {
-            x1: 0,
-            y1: -planet_1.width / 2,
-            x2: 0,
-            y2: planet_1.width / 2,
-            colorStops: {
-                0: "green",
-                0.7: "green",
-                1: "blue"
-            }
-        });
-
-        canvas.add(planet_1);
-        objects_in_universe.push(planet_1);
-
-        if (current_player) {
-            current_player.remove(player_indicator);
-        }
-
-        var first_player = Math.floor((Math.random() * 2) + 1);
-        if (first_player == 1) {
-            current_player = player_1;
-        } else {
-            current_player = player_2;
-        }
-        current_player.set({actionPoints: 8});
-        current_player.add(player_indicator);
-        $(".aim").text(current_player.aim + "˚");
-        $(".power").text(current_player.power);
-        assessAP(current_player);
-    }
-
-    var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
-    var p1_body = new playerBody({radius: 20, fill: "blue", selectable: false, originX: "center", originY: "center"});
+    var p1_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, originX: "center", originY: "center"});
+    var p1_body = new playerBody({radius: 20, fill: "blue", originX: "center", originY: "center"});
     var p1_turret = new playerTurret([0, 0, turret_cos(0), turret_sin(0)],
-            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+            {fill: "white", stroke: "white", strokeWidth: 2, originX: "center", originY: "center"});
+    var player_1 = new Player([p1_perimeter, p1_body, p1_turret], {radius: 30, velocityX: 0, velocityY: 0, mass: 0});
 
-    var p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, selectable: false, originX: "center", originY: "center"});
-    var p2_body = new playerBody({radius: 20, fill: "red", selectable: false, originX: "center", originY: "center"});
+    var p2_perimeter = new fabric.Circle({radius: TURRET_LENGTH, opacity: 0, originX: "center", originY: "center"});
+    var p2_body = new playerBody({radius: 20, fill: "red", originX: "center", originY: "center"});
     var p2_turret = new playerTurret([0, 0, turret_cos(180), turret_sin(180)],
-            {fill: "white", stroke: "white", strokeWidth: 2, selectable: false, originX: "center", originY: "center"});
-    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, selectable: false, velocityX: 0, velocityY: 0, mass: 0});
+            {fill: "white", stroke: "white", strokeWidth: 2, originX: "center", originY: "center"});
+    var player_2 = new Player([p2_perimeter, p2_body, p2_turret], {radius: 30, velocityX: 0, velocityY: 0, mass: 0});
 
-    var player_indicator = new fabric.Triangle({width: 10, height: 6, fill: "#fff", top: -35, angle: 180, selectable: false, originX: "center", originY: "center"});
+    var player_indicator = new fabric.Triangle({width: 10, height: 6, fill: "#fff", top: -35, angle: 180, originX: "center", originY: "center"});
     function indicatorHover() {
         player_indicator.animate("top", -30, {
             duration: 400,
@@ -352,13 +296,13 @@ $(function() {
     });
     var shotMap = {
         "NORMAL SHOT": function(player_turret) {
-            return new Shot({radius: 2, fill: 'yellow', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1, damage: 35})
+            return new Shot({radius: 2, fill: 'yellow', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage: 35})
         },
         "NO-GRAVITY SHOT": function(player_turret) {
-            return new noGravityShot({radius: 2, fill: 'red', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1, damage: 20})
+            return new noGravityShot({radius: 2, fill: 'red', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage: 20})
         },
         "ANTI-GRAVITY SHOT": function(player_turret) {
-            return new antiGravityShot({radius: 2, fill: 'green', left: player_turret[0], top: player_turret[1], selectable: false, velocityX: 0, velocityY: 0, mass: 1, damage:35})
+            return new antiGravityShot({radius: 2, fill: 'green', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage:35})
         }
     };
     var shot;
@@ -433,10 +377,18 @@ $(function() {
         }
     }
 
+    function checkOutOfBounds(object) {
+        if (object.realX() <= -200 || object.realY() <= -200) {
+            objects_in_universe.splice($.inArray(object, objects_in_universe), 1);
+            canvas.remove(object);
+        }
+    }
+
     function animateLoop() {
         for (var index in objects_in_universe) {
             var object = objects_in_universe[index];
             checkCollision(object);
+            checkOutOfBounds(object);
             updateVelocity(object);
             updatePosition(object);
         }
@@ -450,30 +402,6 @@ $(function() {
         }
         canvas.renderAll();
         setTimeout(animateLoop, 1000 / FRAME_RATE);
-    }
-
-    var allow_fire = true;
-
-    function fire(selected_shot, player) {
-        if (player.actionPoints >= 3 && allow_fire) {
-            addShot(selected_shot, player);
-            shot.set({left: shot.left - shot.radius, top: shot.top - shot.radius});
-            canvas.add(shot);
-            power = Number($(".power").text());
-            angle = current_angle();
-            shot.velocityX = Math.cos(DEGREE_IN_RADIANS * angle) * ((power / 10));
-            shot.velocityY = Math.sin(DEGREE_IN_RADIANS * angle) * ((power / 10));
-            objects_in_universe.push(shot);
-            spendAP(player, 3);
-        }
-    }
-
-    function fireListener(e) {
-        var key = e.keyCode || e.charCode;
-        if (key == 32) {
-            selected_shot = $(".shot-button").text();
-            fire(selected_shot, current_player);
-        }
     }
 
     // GAME UI
@@ -639,6 +567,30 @@ $(function() {
         allow_end = true;
     }
 
+    var allow_fire = true;
+
+    function fire(selected_shot, player) {
+        if (player.actionPoints >= 3 && allow_fire) {
+            addShot(selected_shot, player);
+            shot.set({left: shot.left - shot.radius, top: shot.top - shot.radius});
+            canvas.add(shot);
+            power = Number($(".power").text());
+            angle = current_angle();
+            shot.velocityX = Math.cos(DEGREE_IN_RADIANS * angle) * ((power / 10));
+            shot.velocityY = Math.sin(DEGREE_IN_RADIANS * angle) * ((power / 10));
+            objects_in_universe.push(shot);
+            spendAP(player, 3);
+        }
+    }
+
+    function fireListener(e) {
+        var key = e.keyCode || e.charCode;
+        if (key == 32) {
+            selected_shot = $(".shot-button").text();
+            fire(selected_shot, current_player);
+        }
+    }
+
     function selectShot() {
         $(".shot-button").css({display: "none"});
         $(".shot-selection").css({display: "block"});
@@ -657,11 +609,11 @@ $(function() {
     function setMove(player) {
         if (player.actionPoints > 0) {
             var player_body = player.item(1);
-            var move_limit = new fabric.Circle({radius: player_body.radius, left: player.realX(), top: player.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, selectable: false, originX: "center", originY: "center"});
+            var move_limit = new fabric.Circle({radius: player_body.radius, left: player.realX(), top: player.realY(), opacity: 0.5, fill: "#2C4379", stroke: "#00FFFE", strokeWidth: 1, originX: "center", originY: "center"});
             var move_phantom = new fabric.Group([
                 fabric.util.object.clone(player.item(0)),
                 fabric.util.object.clone(player.item(1)),
-                fabric.util.object.clone(player.item(2))], {radius: TURRET_LENGTH, left: player.left, top: player.top, selectable: false});
+                fabric.util.object.clone(player.item(2))], {radius: TURRET_LENGTH, left: player.left, top: player.top});
             var pnts_to_be_rmvd = 0;
 
             function removeMoveLimit() {
@@ -803,6 +755,70 @@ $(function() {
         });
     }
 
+    // Turns and new games
+    var current_player;
+
+    function resetGame() {
+        $(".game-over").css({display: "none"});
+        var planets = canvas.getElementsByType("Planet");
+        var shots = canvas.getElementsByType("Shot");
+        for (var i = 0; i < planets.length; i++) {
+            canvas.remove(planets[i]);
+            objects_in_universe.splice($.inArray(planets[i], objects_in_universe), 1);
+        }
+        for (var i = 0; i < shots.length; i++) {
+            canvas.remove(shots[i]);
+            objects_in_universe.splice($.inArray(shots[i], objects_in_universe), 1);
+        }
+        player_1.set({actionPoints: 0, aim: 0, power: 50});
+        player_2.set({actionPoints: 0, aim: 180, power: 50});
+        p1_turret.set({x2: turret_cos(0), y2: turret_sin(0)});
+        p2_turret.set({x2: turret_cos(180), y2: turret_sin(180)});
+        var p1_health = document.getElementById("p1-health");
+        var p2_health = document.getElementById("p2-health");
+        p1_health.value = 100;
+        p2_health.value = 100;
+    }
+
+    function loadGameMap1() {
+        resetGame();
+
+        player_1.set({left: 100, top: 400});
+        player_2.set({left: 1800, top: 400});
+
+        var planet_1 = new Planet({radius: 150, left: 800, top: 320, selectable: false, velocityX: 0, velocityY: 0, mass: 100000});
+        planet_1.setGradient('fill', {
+            x1: 0,
+            y1: -planet_1.width / 2,
+            x2: 0,
+            y2: planet_1.width / 2,
+            colorStops: {
+                0: "green",
+                0.7: "green",
+                1: "blue"
+            }
+        });
+
+        canvas.add(planet_1);
+        objects_in_universe.push(planet_1);
+
+        if (current_player) {
+            current_player.remove(player_indicator);
+        }
+
+        var first_player = Math.floor((Math.random() * 2) + 1);
+        if (first_player == 1) {
+            current_player = player_1;
+        } else {
+            current_player = player_2;
+        }
+        current_player.set({actionPoints: 8});
+        current_player.add(player_indicator);
+        $(".aim").text(current_player.aim + "˚");
+        $(".power").text(current_player.power);
+        assessAP(current_player);
+    }
+
     var allow_end = true;
 
     function endTurn() {
@@ -855,6 +871,12 @@ $(function() {
     $(".play-again-btn").on("click", function() {
         modeChange(tearGame, buildGame);
     });
+
+//    Draggable.create(".canvas-container", {
+//        type: "scroll",
+//        zIndexBoost: false,
+//        dragClickables: true
+//    });
 
     paramHover();
 

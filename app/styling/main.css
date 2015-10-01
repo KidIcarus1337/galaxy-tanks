@@ -81,14 +81,32 @@ button:focus {
     text-align: right;
 }
 
-#p1-health, #p2-health {
+.player-name {
+    margin: 10px 0 5px;
+}
+
+.health-bar {
     -webkit-appearance: none;
     appearance: none;
     height: 10px;
     width: 200px;
     border: 2px solid #aaaaaa;
     border-radius: 1px;
-    color: #0ddf00;
+}
+
+#p2-health {
+    -moz-transform: scaleX(-1);
+    -webkit-transform: scaleX(-1);
+    -o-transform: scaleX(-1);
+    transform: scaleX(-1);
+}
+
+.health-bar::-webkit-progress-bar {
+    background-color: #3a3a3a;
+}
+
+.health-bar::-webkit-progress-value {
+    background-color: #03c100;
 }
 
 .player-controls {
