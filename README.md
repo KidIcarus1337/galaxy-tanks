@@ -1,5 +1,8 @@
 # Galaxy Tanks
+
 An HTML5 tanks game app (IN SPACE!).
+
+### [Live demo](http://kidicarus1337.github.io/galaxy-tanks/)
 
 **THIS IS CURRENTLY A WORK IN PROGRESS**
 
