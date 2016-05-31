@@ -296,13 +296,13 @@ $(function() {
     });
     var shotMap = {
         "NORMAL SHOT": function(player_turret) {
-            return new Shot({radius: 2, fill: 'yellow', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage: 35})
+            return new Shot({radius: 2, fill: 'yellow', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage: 35});
         },
         "NO-GRAVITY SHOT": function(player_turret) {
-            return new noGravityShot({radius: 2, fill: 'red', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage: 20})
+            return new noGravityShot({radius: 2, fill: 'red', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage: 20});
         },
         "ANTI-GRAVITY SHOT": function(player_turret) {
-            return new antiGravityShot({radius: 2, fill: 'green', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage:35})
+            return new antiGravityShot({radius: 2, fill: 'green', left: player_turret[0], top: player_turret[1], velocityX: 0, velocityY: 0, mass: 1, damage:35});
         }
     };
     var shot;
